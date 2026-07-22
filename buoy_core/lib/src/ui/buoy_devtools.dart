@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../buoy.dart';
 import '../storage.dart';
 import '../tool.dart';
 import 'buoy_theme.dart';
@@ -25,9 +26,26 @@ import 'touchable_opacity.dart';
 /// and is never rebuilt by menu state — bubble drag, dial, and tool layers
 /// composite on top.
 class BuoyDevTools extends StatefulWidget {
-  const BuoyDevTools({super.key, required this.tools, required this.child});
+  const BuoyDevTools({
+    super.key,
+    this.tools = const [],
+    this.deviceName = 'Flutter App',
+    this.deviceId,
+    this.socketUrl,
+    this.licenseKey,
+    required this.child,
+  });
 
+  /// Extra tools beyond those self-registered via [Buoy.registerTool].
   final List<BuoyTool> tools;
+
+  /// Desktop-sync identity — mirrors the RN `externalSync` prop. The widget
+  /// auto-starts the sync connection on mount (idempotent; an explicit
+  /// earlier [Buoy.init] wins).
+  final String deviceName;
+  final String? deviceId;
+  final String? socketUrl;
+  final String? licenseKey;
   final Widget child;
 
   @override
@@ -38,6 +56,16 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   final _storage = BuoyStorage();
   bool _dialVisible = false;
   BuoyTool? _openTool;
+  VoidCallback? _removeRegistryListener;
+
+  /// Registered + prop tools, prop tools last (explicit wins on duplicate id).
+  List<BuoyTool> get _allTools {
+    final seen = <String>{};
+    return [
+      for (final tool in [...Buoy.tools, ...widget.tools])
+        if (seen.add(tool.id)) tool,
+    ];
+  }
 
   /// Tools minimized out of their modal, docked as restorable icons. Singleton
   /// per tool id (RN MinimizedToolsContext.minimize dedupes by id).
@@ -51,6 +79,14 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   void initState() {
     super.initState();
     if (kDebugMode) {
+      Buoy.init(
+        deviceName: widget.deviceName,
+        deviceId: widget.deviceId,
+        socketUrl: widget.socketUrl,
+        licenseKey: widget.licenseKey,
+      );
+      _removeRegistryListener =
+          Buoy.addRegistryListener(() => setState(() {}));
       _restoreDialState();
       _restoreOpenApps();
       // Apply persisted global modal settings (expandable controls, shared
@@ -93,7 +129,7 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   }
 
   BuoyTool? _toolById(String id) {
-    for (final tool in widget.tools) {
+    for (final tool in _allTools) {
       if (tool.id == id) return tool;
     }
     return null;
@@ -166,6 +202,7 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
 
   @override
   void dispose() {
+    _removeRegistryListener?.call();
     _storage.dispose();
     super.dispose();
   }
@@ -198,7 +235,7 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
         ),
         if (_dialVisible)
           DialOverlay(
-            tools: widget.tools,
+            tools: _allTools,
             storage: _storage,
             onLaunch: _launchTool,
             onDismissed: _dialDismissed,

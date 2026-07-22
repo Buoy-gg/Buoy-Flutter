@@ -2,7 +2,7 @@ name: buoy
 description: >-
   Buoy devtools for Flutter — in-app floating devtools that stream live to the
   Buoy Desktop dashboard. Umbrella package for the Buoy tool suite.
-version: 0.1.0
+version: 0.2.0
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 
@@ -15,8 +15,8 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  buoy_core: ^0.1.0
-  buoy_network: ^0.1.0
+  buoy_core: ^0.2.0
+  buoy_network: ^0.2.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

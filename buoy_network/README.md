@@ -18,21 +18,18 @@ flutter pub add buoy_network
 import 'package:buoy_network/buoy_network.dart';
 
 void main() {
-  if (kDebugMode) {
-    BuoyHttpOverrides.install();                    // capture everything
-    BuoySyncClient(
-      deviceName: 'My App',
-      deviceId: 'my-app',
-      platform: Platform.isIOS ? 'ios' : 'android',
-      tools: {'network': networkSyncAdapter},       // stream to Buoy Desktop
-    ).connect();
-    NetworkEventStore.instance.subscribe(() {});    // keep in-app panel live
-  }
+  if (kDebugMode) registerBuoyNetwork();   // capture + tool registration
   runApp(const MyApp());
 }
+
+// In your MaterialApp:
+builder: (context, child) => BuoyDevTools(
+  deviceName: 'My App',
+  child: child ?? const SizedBox.shrink(),
+),
 ```
 
-Mount the in-app panel with `BuoyDevTools` + a `BuoyTool` using `NetworkModal` — see [`example/`](example/lib/main.dart).
+That's it — `registerBuoyNetwork()` installs the HTTP hook and registers the tool; `BuoyDevTools` mounts the in-app panel and auto-connects to Buoy Desktop. (Or use the [`buoy`](https://pub.dev/packages/buoy) umbrella and skip even the register call.)
 
 ## What gets captured
 

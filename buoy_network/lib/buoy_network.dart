@@ -6,7 +6,9 @@
 /// the in-app panel.
 library;
 
-export 'package:buoy_core/buoy_core.dart' show BuoySyncClient, BuoyTool;
+export 'package:buoy_core/buoy_core.dart'
+    show Buoy, BuoyDevTools, BuoySyncClient, BuoyTool;
 
 export 'src/network_capture.dart';
 export 'src/network_tool/network_modal.dart';
+export 'src/register.dart';

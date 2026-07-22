@@ -5,6 +5,7 @@
 /// ([BuoyDevTools]), and shared UI/persistence used by tool packages.
 library;
 
+export 'src/buoy.dart';
 export 'src/storage.dart';
 export 'src/sync_client.dart';
 export 'src/tool.dart';

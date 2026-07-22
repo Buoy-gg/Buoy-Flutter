@@ -39,8 +39,19 @@ void addIgnoredCaptureUrl(Pattern hostOrPattern) {
   );
 }
 
-bool _isIgnoredUrl(String url) =>
-    _ignoredUrlPatterns.any((pattern) => pattern.hasMatch(url));
+/// Buoy's own broker traffic is always ignored — resolved lazily from the
+/// active sync client so zero-config apps never self-capture.
+String? _brokerAuthority() {
+  final url = Buoy.sync?.socketUrl;
+  if (url == null) return null;
+  return Uri.tryParse(url)?.authority;
+}
+
+bool _isIgnoredUrl(String url) {
+  final broker = _brokerAuthority();
+  if (broker != null && broker.isNotEmpty && url.contains(broker)) return true;
+  return _ignoredUrlPatterns.any((pattern) => pattern.hasMatch(url));
+}
 
 class NetworkCaptureEvent {
   NetworkCaptureEvent({

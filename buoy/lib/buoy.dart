@@ -1,9 +1,12 @@
 /// Buoy devtools for Flutter — umbrella package.
 ///
-/// Re-exports the full Buoy tool suite so one dependency wires everything:
-/// `buoy_core` (sync client, tool registry, floating shell) and
-/// `buoy_network` (network inspector). See https://buoy.gg for docs.
+/// One widget wires everything: wrap your app with [BuoyDevTools] (via
+/// `MaterialApp.builder`) and every installed Buoy tool auto-registers —
+/// HTTP capture, the in-app floating menu, live desktop sync, and the MCP
+/// server connection. See https://buoy.gg for docs.
 library;
 
-export 'package:buoy_core/buoy_core.dart';
-export 'package:buoy_network/buoy_network.dart';
+export 'package:buoy_core/buoy_core.dart' hide BuoyDevTools;
+export 'package:buoy_network/buoy_network.dart' hide BuoyDevTools;
+
+export 'src/buoy_devtools.dart';

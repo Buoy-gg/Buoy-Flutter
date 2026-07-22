@@ -17,22 +17,15 @@ flutter pub add buoy
 ```dart
 import 'package:buoy/buoy.dart';
 
-void main() {
-  if (kDebugMode) {
-    BuoyHttpOverrides.install();
-    BuoySyncClient(
-      deviceName: 'My App',
-      deviceId: 'my-app',
-      platform: Platform.isIOS ? 'ios' : 'android',
-      tools: {'network': networkSyncAdapter},
-    ).connect();
-    NetworkEventStore.instance.subscribe(() {});
-  }
-  runApp(const MyApp());
-}
+MaterialApp(
+  builder: (context, child) => BuoyDevTools(
+    deviceName: 'My App',
+    child: child ?? const SizedBox.shrink(),
+  ),
+)
 ```
 
-See [`example/`](example/lib/main.dart) for the in-app panel wiring.
+One widget — that's the whole setup. Every installed Buoy tool self-registers: HTTP capture, the floating in-app menu, live desktop sync, and the MCP server connection. Optional props: `licenseKey` (Pro), `socketUrl` (physical devices), `tools` (your own custom tools).
 
 ## The three surfaces
 

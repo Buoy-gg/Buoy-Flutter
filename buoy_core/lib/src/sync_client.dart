@@ -108,6 +108,14 @@ class BuoySyncClient {
 
   bool get isConnected => _socket?.connected ?? false;
 
+  /// Register a tool after construction (late registration from tool
+  /// packages). Re-announces capabilities so the broker/dashboards learn the
+  /// new tool and re-send its watch state.
+  void addTool(String toolId, ToolSyncAdapter adapter) {
+    tools[toolId] = adapter;
+    if (isConnected) _sendCapabilities();
+  }
+
   void connect() {
     if (_socket != null) return;
     instance = this;
