@@ -1,0 +1,11 @@
+Buoy — Proprietary License
+
+Copyright © 2026 Buoy LLC. All rights reserved.
+
+This package and its source code are proprietary software, made source-visible
+for transparency and debugging. Use in development is free. Pro features
+(production builds, the MCP server, unlimited capture) require a paid license
+per the terms at https://buoy.gg/terms.
+
+You may not redistribute, re-publish, sell, or create derivative packages from
+this source. See https://buoy.gg/pricing for licensing.

@@ -1,0 +1,11 @@
+name: buoy_flutter_workspace
+description: Pub workspace root for the Buoy Flutter SDK packages (not published).
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+workspace:
+  - buoy
+  - buoy_core
+  - buoy_network
