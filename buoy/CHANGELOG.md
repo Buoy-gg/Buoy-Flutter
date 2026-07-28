@@ -1,3 +1,9 @@
+## 0.3.0
+
+- The umbrella now bundles the full tool suite — network, storage, console, env,
+  routes, images, impersonate, image overlay, events, riverpod, and perf monitor
+  (previously network only). One `flutter pub add buoy` wires them all.
+
 ## 0.2.0
 
 - Zero-config setup: mount one `BuoyDevTools` widget and installed tools

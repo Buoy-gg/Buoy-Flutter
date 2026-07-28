@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
 import '../network_capture.dart';
-import 'formatting.dart';
-import 'macos_colors.dart';
-import 'minute_ticker.dart';
 import 'network_filter.dart';
-import 'widgets/badges.dart';
-import 'widgets/devtools_card.dart';
 
 /// Port of NetworkEventItemCompact — one request row.
 /// Layout: status-tinted left border; method badge + size indicators left;
@@ -120,8 +117,8 @@ class NetworkEventRow extends StatelessWidget {
                 spacing: 6,
                 children: [
                   if (contentType != null) ContentTypeBadge(type: contentType),
-                  const Icon(
-                    Icons.chevron_right,
+                  const BuoyGlyph(
+                    BuoyIcons.chevronRight,
                     size: 14,
                     color: MacOSColors.textMuted,
                   ),
@@ -179,20 +176,20 @@ class _SizeIndicators extends StatelessWidget {
         spacing: 4,
         children: [
           if (requestSize != null && requestSize! > 0)
-            _sizeItem(Icons.arrow_upward, MacOSColors.info, requestSize!),
+            _sizeItem(BuoyIcons.arrowUp, MacOSColors.info, requestSize!),
           if (responseSize != null && responseSize! > 0)
-            _sizeItem(Icons.arrow_downward, MacOSColors.success, responseSize!),
+            _sizeItem(BuoyIcons.arrowDown, MacOSColors.success, responseSize!),
         ],
       ),
     );
   }
 
-  Widget _sizeItem(IconData icon, Color color, int bytes) {
+  Widget _sizeItem(LucideIcon icon, Color color, int bytes) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       spacing: 2,
       children: [
-        Icon(icon, size: 8, color: color),
+        BuoyGlyph(icon, size: 8, color: color),
         Text(
           formatBytes(bytes),
           style: const TextStyle(

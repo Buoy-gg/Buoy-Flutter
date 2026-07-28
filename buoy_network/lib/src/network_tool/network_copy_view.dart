@@ -2,15 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../network_capture.dart';
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
+import '../network_capture.dart';
 import 'copy_settings.dart';
-import 'formatting.dart';
-import 'macos_colors.dart';
-import 'minute_ticker.dart';
-import 'widgets/copy_button.dart';
-import 'widgets/data_viewer.dart';
-import 'widgets/dynamic_filter_view.dart';
 
 /// Port of NetworkCopySettingsView — the Copy tab: quick presets, include
 /// toggles, output format, and a collapsible live preview with size
@@ -127,14 +123,14 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
           title: 'Presets',
           options: [
             for (final (key, label, icon, color) in [
-              ('urls', 'URLs', Icons.link, MacOSColors.info),
-              ('llm', 'LLM', Icons.bolt, MacOSColors.success),
-              ('json', 'JSON', Icons.code, MacOSColors.warning),
-              ('full', 'Full', Icons.description_outlined, MacOSColors.info),
+              ('urls', 'URLs', BuoyIcons.link, MacOSColors.info),
+              ('llm', 'LLM', BuoyIcons.zap, MacOSColors.success),
+              ('json', 'JSON', BuoyIcons.code, MacOSColors.warning),
+              ('full', 'Full', BuoyIcons.fileText, MacOSColors.info),
               (
                 'custom',
                 'Custom',
-                Icons.settings_outlined,
+                BuoyIcons.settings,
                 MacOSColors.textSecondary,
               ),
             ])
@@ -178,14 +174,14 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
               (
                 CopyFormat.markdown,
                 'Markdown',
-                Icons.description_outlined,
+                BuoyIcons.fileText,
                 MacOSColors.info,
               ),
-              (CopyFormat.json, 'JSON', Icons.code, MacOSColors.warning),
+              (CopyFormat.json, 'JSON', BuoyIcons.code, MacOSColors.warning),
               (
                 CopyFormat.plaintext,
                 'Text',
-                Icons.tag,
+                BuoyIcons.hash,
                 MacOSColors.textSecondary,
               ),
             ])
@@ -260,8 +256,8 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
               child: Row(
                 spacing: 10,
                 children: [
-                  const Icon(
-                    Icons.visibility_outlined,
+                  const BuoyGlyph(
+                    BuoyIcons.eye,
                     size: 16,
                     color: MacOSColors.info,
                   ),
@@ -290,8 +286,8 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
                       ],
                     ),
                   ),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
+                  const BuoyGlyph(
+                    BuoyIcons.chevronDown,
                     size: 16,
                     color: MacOSColors.textMuted,
                   ),
@@ -315,8 +311,8 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
               child: Row(
                 spacing: 6,
                 children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
+                  BuoyGlyph(
+                    BuoyIcons.alertTriangle,
                     size: 12,
                     color: warningColor,
                   ),
@@ -365,8 +361,8 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
                     color: MacOSColors.textSecondary,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_up,
+                BuoyGlyph(
+                  BuoyIcons.chevronUp,
                   size: 14,
                   color: MacOSColors.textSecondary,
                 ),

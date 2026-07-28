@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../icons/buoy_icon_painter.dart';
+import '../icons/buoy_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../buoy.dart';
@@ -8,6 +10,7 @@ import 'buoy_theme.dart';
 import 'dial/dial_overlay.dart';
 import 'floating_bubble.dart';
 import 'modal/modal_settings.dart';
+import 'overlay_host.dart';
 import 'touchable_opacity.dart';
 
 /// Root of the in-app floating menu — the Flutter analog of the RN package's
@@ -57,6 +60,19 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   bool _dialVisible = false;
   BuoyTool? _openTool;
   VoidCallback? _removeRegistryListener;
+
+  /// Hosts every Buoy layer inside our own [Overlay] (see [build]). Created once
+  /// — [OverlayState] consumes `initialEntries` on mount and ignores later ones.
+  OverlayEntry? _buoyEntry;
+
+  /// The entry sits inside the Overlay, so an ancestor rebuild does NOT rebuild
+  /// it. Marking it dirty on every [setState] keeps the layers as reactive as
+  /// they were when they were plain Stack children.
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _buoyEntry?.markNeedsBuild();
+  }
 
   /// Registered + prop tools, prop tools last (explicit wins on duplicate id).
   List<BuoyTool> get _allTools {
@@ -210,11 +226,34 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   @override
   Widget build(BuildContext context) {
     if (!kDebugMode) return widget.child;
-    final openTool = _openTool;
+    // The Buoy layers mount at `MaterialApp.builder`, i.e. ABOVE the app's
+    // Navigator — so they inherit no Overlay. Any TextField in a tool modal
+    // (search fields, filter inputs) then throws "No Overlay widget found" as
+    // soon as it needs its selection handles / cursor / context menu. Hosting
+    // the layers in their own Overlay gives those fields the ancestor they
+    // need, without a nested Navigator stealing route/back-button semantics.
+    _buoyEntry ??= OverlayEntry(builder: _buoyLayers);
     return Stack(
       fit: StackFit.expand,
       children: [
         widget.child,
+        Overlay(initialEntries: [_buoyEntry!]),
+      ],
+    );
+  }
+
+  /// Every interactive Buoy layer, rendered inside [_buoyEntry]. `initialEntries`
+  /// is read once by [OverlayState], so this never re-runs from an ancestor
+  /// rebuild — [setState] marks the entry dirty instead (see the override above).
+  Widget _buoyLayers(BuildContext context) {
+    final openTool = _openTool;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Tool-owned full-screen overlays (e.g. image-overlay's mockup image)
+        // render OUTSIDE any modal, above the app but below the interactive
+        // Buoy UI. Renders nothing until a tool registers a builder.
+        const _OverlayHostLayer(),
         // JsModal-style tools render their own modal surface; screen-style
         // tools fall back to the full-screen host.
         if (openTool != null && openTool.modalBuilder != null)
@@ -245,6 +284,30 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   }
 }
 
+/// Renders every builder registered with [BuoyOverlayHost] as a stacked
+/// full-screen layer. Transparent regions pass touches through to the app
+/// child below (no opaque background) — the Flutter analog of RN's
+/// `pointerEvents="box-none"` standalone-overlay slot.
+class _OverlayHostLayer extends StatelessWidget {
+  const _OverlayHostLayer();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<WidgetBuilder>>(
+      valueListenable: BuoyOverlayHost.instance.listenable,
+      builder: (context, builders, _) {
+        if (builders.isEmpty) return const SizedBox.shrink();
+        return Positioned.fill(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [for (final build in builders) build(context)],
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Full-screen host for a modal-style tool (the v1 stand-in for the RN
 /// AppHost; minimize/restore comes later).
 class _ToolHost extends StatelessWidget {
@@ -265,7 +328,7 @@ class _ToolHost extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
                 child: Row(
                   children: [
-                    Icon(tool.icon, size: 18, color: tool.color),
+                    tool.icon(18, tool.color),
                     const SizedBox(width: 8),
                     Text(
                       tool.name.toUpperCase(),
@@ -283,8 +346,8 @@ class _ToolHost extends StatelessWidget {
                       onTap: onClose,
                       child: const Padding(
                         padding: EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.close,
+                        child: BuoyGlyph(
+                          BuoyIcons.x,
                           size: 20,
                           color: BuoyTheme.muted,
                         ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../icons/buoy_icon_painter.dart';
+import '../icons/buoy_icons.dart';
 
 import '../core/bubble_state.dart';
 import '../core/constants.dart';
@@ -355,8 +357,8 @@ class _BubbleBody extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: Icon(
-                  Icons.drag_indicator,
+                child: BuoyGlyph(
+                  BuoyIcons.gripVertical,
                   size: 14,
                   color: BuoyTheme.secondary.withValues(alpha: 0.8),
                 ),

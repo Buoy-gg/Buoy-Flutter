@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../network_capture.dart';
 import 'package:buoy_core/buoy_core.dart';
-import 'ignored_patterns.dart';
-import 'macos_colors.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
+import '../network_capture.dart';
 import 'network_filter.dart';
-import 'widgets/dynamic_filter_view.dart';
 
 /// Port of NetworkFilterViewV3 — the Filters tab: status/method/content-type
 /// facet grids with counts over the currently filtered list, the shared
@@ -44,13 +43,13 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
     _ => MacOSColors.textMuted,
   };
 
-  IconData _contentTypeIcon(String type) => switch (type) {
-    'JSON' => Icons.data_object,
-    'HTML' || 'XML' || 'TEXT' => Icons.description_outlined,
-    'IMAGE' => Icons.image_outlined,
-    'VIDEO' => Icons.movie_outlined,
-    'AUDIO' => Icons.music_note,
-    _ => Icons.public,
+  LucideIcon _contentTypeIcon(String type) => switch (type) {
+    'JSON' => BuoyIcons.braces,
+    'HTML' || 'XML' || 'TEXT' => BuoyIcons.fileText,
+    'IMAGE' => BuoyIcons.image,
+    'VIDEO' => BuoyIcons.film,
+    'AUDIO' => BuoyIcons.music,
+    _ => BuoyIcons.globe,
   };
 
   Color _methodColor(String method) => switch (method) {
@@ -147,7 +146,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                     'all',
                     'All',
                     events.length,
-                    Icons.public,
+                    BuoyIcons.globe,
                     MacOSColors.info,
                     'all',
                   ),
@@ -155,7 +154,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                     'success',
                     'Success',
                     success,
-                    Icons.check_circle_outline,
+                    BuoyIcons.checkCircle,
                     MacOSColors.success,
                     NetworkStatusFilter.success,
                   ),
@@ -163,7 +162,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                     'error',
                     'Error',
                     error,
-                    Icons.highlight_off,
+                    BuoyIcons.xCircle,
                     MacOSColors.error,
                     NetworkStatusFilter.error,
                   ),
@@ -171,7 +170,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                     'pending',
                     'Pending',
                     pending,
-                    Icons.schedule,
+                    BuoyIcons.clock,
                     MacOSColors.warning,
                     NetworkStatusFilter.pending,
                   ),

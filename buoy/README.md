@@ -4,7 +4,7 @@
 
 One dependency wires the whole Buoy suite: a floating in-app devtools menu, the [Buoy Desktop](https://buoy.gg) dashboard connection, and the Buoy MCP server for AI-editor access to your app's runtime.
 
-> **Beta** — the network inspector ships first; more tools are coming from the [React Native suite](https://buoy.gg) tool by tool. Vote for what's next on the [roadmap](https://buoy.gg/roadmap).
+> **Beta** — eleven tools ship today: network, storage, console, env, routes, images, impersonate, image overlay, events timeline, Riverpod inspector, and a performance monitor. A few from the [React Native suite](https://buoy.gg) (React Query, Redux, Zustand) aren't on Flutter yet. Vote for what's next on the [roadmap](https://buoy.gg/roadmap).
 
 ## Install
 
@@ -31,7 +31,7 @@ One widget — that's the whole setup. Every installed Buoy tool self-registers:
 
 1. **In your app** — floating bubble → dial → tool panels.
 2. **On your desktop** — every device's tools, live, in one dashboard.
-3. **In your AI editor** — the Buoy MCP server reads your app's runtime (network traffic today; more as tools land).
+3. **In your AI editor** — the Buoy MCP server reads your app's runtime: network traffic, logs, routes, state, and more.
 
 ---
 

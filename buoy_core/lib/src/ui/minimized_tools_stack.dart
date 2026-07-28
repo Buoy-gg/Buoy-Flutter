@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../icons/buoy_icon_painter.dart';
+import '../icons/buoy_icons.dart';
 
 import '../storage.dart';
 import '../tool.dart';
@@ -171,8 +173,8 @@ class _MinimizedToolsStackState extends State<MinimizedToolsStack>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.keyboard_arrow_up,
+            const BuoyGlyph(
+              BuoyIcons.chevronUp,
               size: 14,
               color: BuoyTheme.muted,
             ),
@@ -210,8 +212,8 @@ class _MinimizedToolsStackState extends State<MinimizedToolsStack>
             child: const SizedBox(
               width: double.infinity,
               height: MinimizedToolsStack._collapseButtonSize,
-              child: Icon(
-                Icons.keyboard_arrow_down,
+              child: BuoyGlyph(
+                BuoyIcons.chevronDown,
                 size: 14,
                 color: BuoyTheme.muted,
               ),
@@ -232,7 +234,7 @@ class _MinimizedToolsStackState extends State<MinimizedToolsStack>
         child: SizedBox(
           width: MinimizedToolsStack._toolItemSize,
           height: MinimizedToolsStack._toolItemSize,
-          child: Center(child: Icon(tool.icon, size: 18, color: tool.color)),
+          child: Center(child: tool.icon(18, tool.color)),
         ),
       ),
     );

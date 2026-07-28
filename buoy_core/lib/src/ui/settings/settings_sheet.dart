@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import '../../icons/buoy_icon_painter.dart';
+import '../../icons/buoy_icons.dart';
 
 import 'package:flutter/material.dart';
 
@@ -203,14 +205,14 @@ class _SettingsSheetState extends State<SettingsSheet> {
           _ToolCard(
             label: tool.name.toUpperCase(),
             description: tool.description ?? '',
-            icon: Icon(tool.icon, size: 16, color: tool.color),
+            icon: tool.icon(16, tool.color),
             value: settings.floatingTools[tool.id] ?? false,
             onToggle: () => _toggleFloatingTool(tool.id),
           ),
         _ToolCard(
           label: 'ENV BADGE',
           description: 'Environment badge.',
-          icon: const Icon(Icons.public, size: 16, color: BuoyTheme.teal),
+          icon: const BuoyGlyph(BuoyIcons.globe, size: 16, color: BuoyTheme.teal),
           value: settings.floatingTools['environment'] ?? false,
           onToggle: () => _toggleFloatingTool('environment'),
         ),
@@ -295,11 +297,11 @@ class _SettingsSheetState extends State<SettingsSheet> {
   Widget _storageCard() {
     final keys = _savedKeys;
     return _StatusCard(
-      icon: Icons.storage,
+      icon: BuoyIcons.database,
       accent: BuoyTheme.teal,
       label: 'STORAGE TYPE',
       badge: 'SHARED PREFERENCES',
-      badgeIcon: Icons.check_circle,
+      badgeIcon: BuoyIcons.checkCircle,
       description:
           'Settings persist via the platform preferences store and survive '
           'app restarts.',
@@ -311,8 +313,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.description,
+                    const BuoyGlyph(
+                      BuoyIcons.fileText,
                       size: 14,
                       color: BuoyTheme.teal,
                     ),
@@ -407,8 +409,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 8,
             children: [
-              Icon(
-                _clearSuccess ? Icons.check_circle : Icons.delete_outline,
+              BuoyGlyph(
+                _clearSuccess ? BuoyIcons.checkCircle : BuoyIcons.trash2,
                 size: 14,
                 color: _clearSuccess
                     ? BuoyTheme.teal
@@ -445,7 +447,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
         final connected = status.state == BuoySyncState.connected;
         final accent = connected ? BuoyTheme.teal : BuoyTheme.warning;
         return _StatusCard(
-          icon: Icons.language,
+          icon: BuoyIcons.globe,
           accent: accent,
           label: 'DESKTOP SYNC',
           badge: switch (status.state) {
@@ -454,8 +456,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
             BuoySyncState.retrying => 'RETRYING',
           },
           badgeIcon: connected
-              ? Icons.check_circle
-              : Icons.warning_amber_rounded,
+              ? BuoyIcons.checkCircle
+              : BuoyIcons.alertTriangle,
           description: connected
               ? 'Streaming tool data to Buoy Desktop at ${status.targetUrl}'
               : 'Trying to reach Buoy Desktop at ${status.targetUrl} — is '
@@ -489,7 +491,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _sectionHeader(
-          Icons.bolt,
+          BuoyIcons.zap,
           'LICENSE STATUS',
           badge: 'Free',
           badgeColor: BuoyTheme.muted,
@@ -501,7 +503,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             style: TextStyle(fontSize: 12, color: BuoyTheme.textSecondary),
           ),
         ),
-        _sectionHeader(Icons.check_circle, 'PRO FEATURES'),
+        _sectionHeader(BuoyIcons.checkCircle, 'PRO FEATURES'),
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 20),
           child: Column(
@@ -518,8 +520,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   child: Row(
                     spacing: 8,
                     children: [
-                      const Icon(
-                        Icons.check_circle,
+                      const BuoyGlyph(
+                        BuoyIcons.checkCircle,
                         size: 14,
                         color: BuoyTheme.teal,
                       ),
@@ -550,7 +552,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 8,
               children: [
-                Icon(Icons.bolt, size: 16, color: BuoyTheme.base),
+                BuoyGlyph(BuoyIcons.zap, size: 16, color: BuoyTheme.base),
                 Text(
                   'Upgrade to Pro',
                   style: TextStyle(
@@ -568,7 +570,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
   }
 
   Widget _sectionHeader(
-    IconData icon,
+    LucideIcon icon,
     String title, {
     String? badge,
     Color badgeColor = BuoyTheme.teal,
@@ -584,7 +586,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        Icon(icon, size: 12, color: BuoyTheme.teal),
+        BuoyGlyph(icon, size: 12, color: BuoyTheme.teal),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -878,8 +880,8 @@ class _GlobalSettingCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Icon(
-                      expanded ? Icons.expand_more : Icons.chevron_right,
+                    BuoyGlyph(
+                      expanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
                       size: 18,
                       color: const Color(0xFF7F91B2),
                     ),
@@ -958,11 +960,11 @@ class _StatusCard extends StatelessWidget {
     this.footer,
   });
 
-  final IconData icon;
+  final LucideIcon icon;
   final Color accent;
   final String label;
   final String badge;
-  final IconData badgeIcon;
+  final LucideIcon badgeIcon;
   final String description;
   final VoidCallback? onHeaderTap;
   final bool expanded;
@@ -997,7 +999,7 @@ class _StatusCard extends StatelessWidget {
                     color: accent.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, size: 18, color: accent),
+                  child: BuoyGlyph(icon, size: 18, color: accent),
                 ),
                 Expanded(
                   child: Column(
@@ -1038,15 +1040,15 @@ class _StatusCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Icon(badgeIcon, size: 14, color: accent),
+                          BuoyGlyph(badgeIcon, size: 14, color: accent),
                         ],
                       ),
                     ],
                   ),
                 ),
                 if (onHeaderTap != null)
-                  Icon(
-                    expanded ? Icons.expand_more : Icons.chevron_right,
+                  BuoyGlyph(
+                    expanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
                     size: 18,
                     color: BuoyTheme.muted,
                   ),

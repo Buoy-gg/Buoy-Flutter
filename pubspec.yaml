@@ -8,4 +8,15 @@ environment:
 workspace:
   - buoy
   - buoy_core
+  - buoy_console
+  - buoy_env
+  - buoy_events
+  - buoy_image_overlay
+  - buoy_images
+  - buoy_impersonate
   - buoy_network
+  - buoy_perf_monitor
+  - buoy_riverpod
+  - buoy_routes
+  - buoy_shared_ui
+  - buoy_storage

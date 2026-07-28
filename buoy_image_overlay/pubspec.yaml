@@ -1,0 +1,25 @@
+name: buoy_image_overlay
+description: >-
+  Buoy image-overlay tool for Flutter — pin a design mockup over your running app
+  at adjustable opacity for pixel-perfect UI comparison, with drag/resize, flip,
+  and auto-track.
+version: 0.3.0
+homepage: https://buoy.gg
+repository: https://github.com/Buoy-gg/Buoy-Flutter
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.27.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  buoy_core: ^0.3.0
+  buoy_shared_ui: ^0.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

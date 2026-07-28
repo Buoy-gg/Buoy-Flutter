@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../icons/buoy_icon_painter.dart';
+import '../../icons/buoy_icons.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -573,7 +575,7 @@ class _ToolIconState extends State<_ToolIcon> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(widget.tool.icon, size: 32, color: widget.tool.color),
+              widget.tool.icon(32, widget.tool.color),
               const SizedBox(height: 6),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -641,7 +643,7 @@ class _PaginationBar extends StatelessWidget {
       children: [
         _PageButton(
           label: 'PREV',
-          chevron: Icons.chevron_left,
+          chevron: BuoyIcons.chevronLeft,
           chevronLeading: true,
           onTap: onPrev,
         ),
@@ -673,7 +675,7 @@ class _PaginationBar extends StatelessWidget {
         ),
         _PageButton(
           label: 'NEXT',
-          chevron: Icons.chevron_right,
+          chevron: BuoyIcons.chevronRight,
           chevronLeading: false,
           onTap: onNext,
         ),
@@ -691,7 +693,7 @@ class _PageButton extends StatefulWidget {
   });
 
   final String label;
-  final IconData chevron;
+  final LucideIcon chevron;
   final bool chevronLeading;
   final VoidCallback? onTap;
 
@@ -722,7 +724,7 @@ class _PageButtonState extends State<_PageButton> {
             : const [],
       ),
     );
-    final icon = Icon(widget.chevron, size: 18, color: accent);
+    final icon = BuoyGlyph(widget.chevron, size: 18, color: accent);
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,

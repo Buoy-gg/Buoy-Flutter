@@ -2,14 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../network_capture.dart';
 import 'package:buoy_core/buoy_core.dart';
-import 'formatting.dart';
-import 'ignored_patterns.dart';
-import 'macos_colors.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
+import '../network_capture.dart';
 import 'network_filter.dart';
-import 'widgets/copy_button.dart';
-import 'widgets/data_viewer.dart';
 
 /// Port of NetworkEventDetailView — the request inspector: HTTP header row,
 /// Sentry-style URL breakdown, timing card, collapsible header/body sections
@@ -149,8 +146,8 @@ ${pretty(event.responseData)}
                           mainAxisSize: MainAxisSize.min,
                           spacing: 4,
                           children: [
-                            Icon(
-                              Icons.schedule,
+                            BuoyGlyph(
+                              BuoyIcons.clock,
                               size: 10,
                               color: MacOSColors.warning,
                             ),
@@ -170,8 +167,8 @@ ${pretty(event.responseData)}
                         mainAxisSize: MainAxisSize.min,
                         spacing: 4,
                         children: [
-                          const Icon(
-                            Icons.schedule,
+                          const BuoyGlyph(
+                            BuoyIcons.clock,
                             size: 10,
                             color: MacOSColors.textMuted,
                           ),
@@ -201,8 +198,8 @@ ${pretty(event.responseData)}
                     child: Row(
                       spacing: 6,
                       children: [
-                        const Icon(
-                          Icons.error_outline,
+                        const BuoyGlyph(
+                          BuoyIcons.alertCircle,
                           size: 12,
                           color: MacOSColors.error,
                         ),
@@ -231,8 +228,8 @@ ${pretty(event.responseData)}
                 Row(
                   spacing: 6,
                   children: [
-                    const Icon(
-                      Icons.schedule,
+                    const BuoyGlyph(
+                      BuoyIcons.clock,
                       size: 12,
                       color: MacOSColors.textSecondary,
                     ),
@@ -277,14 +274,14 @@ ${pretty(event.responseData)}
                       children: [
                         if (event.requestSize != null)
                           _sizeItem(
-                            Icons.arrow_upward,
+                            BuoyIcons.arrowUp,
                             MacOSColors.info,
                             'Sent:',
                             event.requestSize!,
                           ),
                         if (event.responseSize != null)
                           _sizeItem(
-                            Icons.arrow_downward,
+                            BuoyIcons.arrowDown,
                             MacOSColors.success,
                             'Received:',
                             event.responseSize!,
@@ -298,7 +295,7 @@ ${pretty(event.responseData)}
 
           _CollapsibleSection(
             title: 'Request Headers',
-            icon: Icons.arrow_upward,
+            icon: BuoyIcons.arrowUp,
             iconColor: MacOSColors.info,
             child: event.requestHeaders.isNotEmpty
                 ? DataViewer(data: event.requestHeaders, initialExpanded: true)
@@ -306,7 +303,7 @@ ${pretty(event.responseData)}
           ),
           _CollapsibleSection(
             title: 'Response Headers',
-            icon: Icons.arrow_downward,
+            icon: BuoyIcons.arrowDown,
             iconColor: MacOSColors.success,
             child: event.responseHeaders.isNotEmpty
                 ? DataViewer(data: event.responseHeaders, initialExpanded: true)
@@ -315,14 +312,14 @@ ${pretty(event.responseData)}
           if (event.requestData != null)
             _CollapsibleSection(
               title: 'Request Body',
-              icon: Icons.data_object,
+              icon: BuoyIcons.braces,
               iconColor: MacOSColors.info,
               child: DataViewer(data: event.requestData, initialExpanded: true),
             ),
           if (event.responseData != null)
             _CollapsibleSection(
               title: 'Response Body',
-              icon: Icons.data_object,
+              icon: BuoyIcons.braces,
               iconColor: MacOSColors.success,
               child: DataViewer(
                 data: event.responseData,
@@ -331,7 +328,7 @@ ${pretty(event.responseData)}
             ),
           _CollapsibleSection(
             title: 'Filter Options',
-            icon: Icons.filter_alt_outlined,
+            icon: BuoyIcons.filter,
             iconColor: MacOSColors.warning,
             child: _FilterOptions(event: event),
           ),
@@ -362,7 +359,7 @@ ${pretty(event.responseData)}
   }
 
   static Widget _sizeItem(
-    IconData icon,
+    LucideIcon icon,
     Color color,
     String label,
     int bytes,
@@ -371,7 +368,7 @@ ${pretty(event.responseData)}
       mainAxisSize: MainAxisSize.min,
       spacing: 4,
       children: [
-        Icon(icon, size: 10, color: color),
+        BuoyGlyph(icon, size: 10, color: color),
         Text(
           label,
           style: const TextStyle(fontSize: 10, color: MacOSColors.textMuted),
@@ -449,8 +446,8 @@ class _UrlBreakdownState extends State<_UrlBreakdown> {
           Row(
             spacing: 6,
             children: [
-              Icon(
-                isSecure ? Icons.lock_outline : Icons.lock_open,
+              BuoyGlyph(
+                isSecure ? BuoyIcons.lock : BuoyIcons.unlock,
                 size: 12,
                 color: isSecure ? MacOSColors.success : MacOSColors.warning,
               ),
@@ -528,10 +525,10 @@ class _UrlBreakdownState extends State<_UrlBreakdown> {
                               ),
                             ),
                           ),
-                          Icon(
+                          BuoyGlyph(
                             _showParams
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
+                                ? BuoyIcons.chevronUp
+                                : BuoyIcons.chevronDown,
                             size: 14,
                             color: MacOSColors.textSecondary,
                           ),
@@ -560,7 +557,7 @@ class _CollapsibleSection extends StatefulWidget {
   });
 
   final String title;
-  final IconData icon;
+  final LucideIcon icon;
   final Color iconColor;
   final Widget child;
 
@@ -596,7 +593,7 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
               color: MacOSColors.backgroundHover,
               child: Row(
                 children: [
-                  Icon(widget.icon, size: 14, color: widget.iconColor),
+                  BuoyGlyph(widget.icon, size: 14, color: widget.iconColor),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -608,10 +605,10 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
                       ),
                     ),
                   ),
-                  Icon(
+                  BuoyGlyph(
                     _isOpen
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
+                        ? BuoyIcons.chevronUp
+                        : BuoyIcons.chevronDown,
                     size: 16,
                     color: MacOSColors.textSecondary,
                   ),
@@ -652,7 +649,7 @@ class _FilterOptions extends StatelessWidget {
           spacing: 12,
           children: [
             _filterOption(
-              icon: Icons.public,
+              icon: BuoyIcons.globe,
               label: 'Ignore Domain',
               value: domain.isNotEmpty ? domain : 'N/A',
               isIgnored: isDomainIgnored,
@@ -661,7 +658,7 @@ class _FilterOptions extends StatelessWidget {
                   : null,
             ),
             _filterOption(
-              icon: Icons.link,
+              icon: BuoyIcons.link,
               label: 'Ignore URL Pattern',
               value: urlPath.isNotEmpty ? urlPath : 'N/A',
               isIgnored: isUrlIgnored,
@@ -693,7 +690,7 @@ class _FilterOptions extends StatelessWidget {
   }
 
   Widget _filterOption({
-    required IconData icon,
+    required LucideIcon icon,
     required String label,
     required String value,
     required bool isIgnored,
@@ -717,7 +714,7 @@ class _FilterOptions extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
+            BuoyGlyph(
               icon,
               size: 16,
               color: isIgnored ? MacOSColors.warning : MacOSColors.textMuted,

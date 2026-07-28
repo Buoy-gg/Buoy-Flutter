@@ -16,7 +16,7 @@ void main() {
         id: 'counter',
         name: 'Counter',
         color: const Color(0xFF34D399),
-        icon: Icons.plus_one,
+        icon: (size, color) => Icon(Icons.plus_one, size: size, color: color),
         onPressed: (context) {
           _count++;
           for (final l in List.of(_listeners)) {

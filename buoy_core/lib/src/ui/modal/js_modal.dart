@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../icons/buoy_icon_painter.dart';
+import '../../icons/buoy_icons.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
@@ -714,9 +716,9 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
     );
   }
 
-  IconData get _toggleModeIcon => _mode == JsModalMode.floating
-      ? Icons.vertical_align_bottom
-      : Icons.filter_none;
+  LucideIcon get _toggleModeIcon => _mode == JsModalMode.floating
+      ? BuoyIcons.arrowDownToLine
+      : BuoyIcons.copy;
 
   /// macOS-style dots (left→right, RN order): yellow minimizes, green toggles
   /// mode (icon shows the action), red closes. The minimize dot only renders
@@ -734,7 +736,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
             if (canMinimize)
               _controlDot(
                 color: const Color(0xFFFEBC2E),
-                icon: Icons.remove,
+                icon: BuoyIcons.minus,
                 iconColor: const Color(0xFF7A5A00),
                 onTap: expandable ? null : _requestMinimize,
               ),
@@ -746,7 +748,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
             ),
             _controlDot(
               color: const Color(0xFFFF5F57),
-              icon: Icons.close,
+              icon: BuoyIcons.x,
               iconColor: const Color(0xFF4A0000),
               onTap: expandable ? null : _requestClose,
             ),
@@ -765,7 +767,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
 
   Widget _controlDot({
     required Color color,
-    required IconData icon,
+    required LucideIcon icon,
     required Color iconColor,
     VoidCallback? onTap,
   }) {
@@ -774,7 +776,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
       width: 12,
       height: 12,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Center(child: Icon(icon, size: 8, color: iconColor)),
+      child: Center(child: BuoyGlyph(icon, size: 8, color: iconColor)),
     );
     if (onTap == null) return dot;
     return TouchableOpacity(activeOpacity: 0.8, onTap: onTap, child: dot);
@@ -840,7 +842,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
               if (widget.onMinimize != null)
                 _expandedControlButton(
                   color: const Color(0xFFFEBC2E),
-                  icon: Icons.remove,
+                  icon: BuoyIcons.minus,
                   iconColor: const Color(0xFF7A5A00),
                   onTap: () => _controlsAction(_requestMinimize),
                 ),
@@ -852,7 +854,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
               ),
               _expandedControlButton(
                 color: const Color(0xFFFF5F57),
-                icon: Icons.close,
+                icon: BuoyIcons.x,
                 iconColor: const Color(0xFF4A0000),
                 onTap: () => _controlsAction(_requestClose),
               ),
@@ -865,7 +867,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
 
   Widget _expandedControlButton({
     required Color color,
-    required IconData icon,
+    required LucideIcon icon,
     required Color iconColor,
     required VoidCallback onTap,
   }) {
@@ -876,7 +878,7 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
         width: 36,
         height: 36,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Center(child: Icon(icon, size: 16, color: iconColor)),
+        child: Center(child: BuoyGlyph(icon, size: 16, color: iconColor)),
       ),
     );
   }

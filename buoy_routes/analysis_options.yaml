@@ -1,0 +1,5 @@
+# Configures the analyzer for the buoy_routes package.
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:

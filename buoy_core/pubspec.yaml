@@ -3,7 +3,7 @@ description: >-
   Buoy devtools core for Flutter — desktop-sync client (Buoy Desktop broker
   protocol), tool registry contract, floating bubble + dial shell, and
   persistent settings storage.
-version: 0.2.0
+version: 0.3.0
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 

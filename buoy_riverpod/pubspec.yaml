@@ -1,0 +1,27 @@
+name: buoy_riverpod
+description: >-
+  Buoy Riverpod state inspector for Flutter — browse every provider's live value
+  and a prev-to-next write log with tree/split diffs, in an in-app panel that
+  streams to Buoy Desktop.
+version: 0.3.0
+homepage: https://buoy.gg
+repository: https://github.com/Buoy-gg/Buoy-Flutter
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.27.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  buoy_core: ^0.3.0
+  buoy_shared_ui: ^0.3.0
+  # Hard dep: Riverpod IS the tool's subject — the ProviderObserver backend.
+  flutter_riverpod: ^3.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

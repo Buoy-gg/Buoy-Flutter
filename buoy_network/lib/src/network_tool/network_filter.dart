@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
 import '../network_capture.dart';
-import 'ignored_patterns.dart';
 
 /// Ports of the network package's pure filter logic
 /// (types/index.ts NetworkFilter + filterNetworkEvents.ts +

@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
 import '../network_capture.dart';
-import 'formatting.dart';
 
 /// Port of NetworkCopySettingsView's CopySettings model + presets and
 /// generateNetworkCopyText.ts. Persisted to the RN key

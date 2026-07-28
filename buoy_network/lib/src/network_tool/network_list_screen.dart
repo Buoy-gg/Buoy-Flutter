@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
 import '../network_capture.dart';
-import 'ignored_patterns.dart';
-import 'macos_colors.dart';
 import 'network_event_row.dart';
 import 'network_filter.dart';
 
@@ -93,8 +93,8 @@ class _NetworkListScreenState extends State<NetworkListScreen> {
             child: const Row(
               spacing: 8,
               children: [
-                Icon(
-                  Icons.power_settings_new,
+                BuoyGlyph(
+                  BuoyIcons.power,
                   size: 14,
                   color: MacOSColors.warning,
                 ),
@@ -135,7 +135,7 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          const Icon(Icons.public, size: 32, color: MacOSColors.textMuted),
+          const BuoyGlyph(BuoyIcons.globe, size: 32, color: MacOSColors.textMuted),
           const Padding(
             padding: EdgeInsets.only(top: 12, bottom: 6),
             child: Text(

@@ -14,6 +14,19 @@ typedef BuoyToolModalBuilder =
       VoidCallback onMinimize,
     );
 
+/// Builds a tool's icon at a given size.
+///
+/// A builder rather than an [IconData] so a tool can supply Buoy's own artwork
+/// — a `BuoyIcon` from the cross-framework icon format in `shared/icons/`,
+/// which is the same drawing React Native and the desktop dashboard render —
+/// instead of being limited to a Material glyph. Mirrors the RN tool preset's
+/// `icon: ({ size }) => <NetworkIcon size={size} />`.
+///
+/// [color] is the tool's accent, offered for glyph-style icons that need
+/// tinting. Buoy's own icons carry their brand color and ignore it, exactly as
+/// the RN dial does.
+typedef BuoyToolIconBuilder = Widget Function(double size, Color color);
+
 /// A devtool registered in the floating menu — the Dart analog of the RN
 /// package's `InstalledApp`. Dart has no runtime `require()`, so unlike RN's
 /// auto-discovery, tools are always registered explicitly (same constraint as
@@ -38,7 +51,9 @@ class BuoyTool {
   final String name;
 
   final Color color;
-  final IconData icon;
+
+  /// Builds the tool's icon. See [BuoyToolIconBuilder].
+  final BuoyToolIconBuilder icon;
 
   /// Short blurb shown in the settings modal's tool cards.
   final String? description;

@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../network_capture.dart';
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart';
+
+import '../network_capture.dart';
 import 'copy_settings.dart';
-import 'ignored_patterns.dart';
-import 'macos_colors.dart';
-import 'minute_ticker.dart';
 import 'network_copy_view.dart';
 import 'network_detail_view.dart';
 import 'network_filter.dart';
 import 'network_filter_view.dart';
 import 'network_list_screen.dart';
-import 'widgets/copy_button.dart';
-import 'widgets/modal_header.dart';
-import 'widgets/power_toggle_button.dart';
-import 'widgets/tab_selector.dart';
 
 /// Port of NetworkModal — the network tool's root surface. Opens in JsModal
 /// with the RN persistence key (`@react_buoy_network_modal`), a compact
@@ -199,7 +194,7 @@ class _NetworkModalState extends State<NetworkModal> {
         ModalHeaderActions(
           children: [
             HeaderActionButton(
-              icon: Icons.search,
+              icon: BuoyIcons.search,
               color: MacOSColors.textSecondary,
               onTap: () {
                 setState(() => _isSearchActive = true);
@@ -209,7 +204,7 @@ class _NetworkModalState extends State<NetworkModal> {
               },
             ),
             HeaderActionButton(
-              icon: Icons.filter_alt_outlined,
+              icon: BuoyIcons.filter,
               color: _filter.hasActiveFacets
                   ? MacOSColors.info
                   : MacOSColors.textMuted,
@@ -242,7 +237,7 @@ class _NetworkModalState extends State<NetworkModal> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.search, size: 14, color: MacOSColors.textSecondary),
+          const BuoyGlyph(BuoyIcons.search, size: 14, color: MacOSColors.textSecondary),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(left: 6),
@@ -281,8 +276,8 @@ class _NetworkModalState extends State<NetworkModal> {
                 padding: EdgeInsets.only(left: 6),
                 child: Padding(
                   padding: EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.close,
+                  child: BuoyGlyph(
+                    BuoyIcons.x,
                     size: 14,
                     color: MacOSColors.textSecondary,
                   ),
@@ -368,19 +363,19 @@ class _NetworkHeaderBadgesState extends State<_NetworkHeaderBadges> {
       children: [
         _chip(
           NetworkStatusFilter.success,
-          Icons.check_circle_outline,
+          BuoyIcons.checkCircle,
           MacOSColors.success,
           success,
         ),
         _chip(
           NetworkStatusFilter.error,
-          Icons.highlight_off,
+          BuoyIcons.xCircle,
           MacOSColors.error,
           failed,
         ),
         _chip(
           NetworkStatusFilter.pending,
-          Icons.schedule,
+          BuoyIcons.clock,
           MacOSColors.warning,
           pending,
         ),
@@ -390,7 +385,7 @@ class _NetworkHeaderBadgesState extends State<_NetworkHeaderBadges> {
 
   Widget _chip(
     NetworkStatusFilter status,
-    IconData icon,
+    LucideIcon icon,
     Color color,
     int count,
   ) {
@@ -415,7 +410,7 @@ class _NetworkHeaderBadgesState extends State<_NetworkHeaderBadges> {
           mainAxisSize: MainAxisSize.min,
           spacing: 4,
           children: [
-            Icon(icon, size: 12, color: color),
+            BuoyGlyph(icon, size: 12, color: color),
             Text(
               '$count',
               style: TextStyle(
@@ -468,7 +463,7 @@ class _HeaderClearButtonState extends State<_HeaderClearButton> {
   @override
   Widget build(BuildContext context) {
     return HeaderActionButton(
-      icon: Icons.delete_outline,
+      icon: BuoyIcons.trash2,
       color: _hasEvents ? MacOSColors.textMuted : MacOSColors.textDisabled,
       disabled: !_hasEvents,
       onTap: NetworkEventStore.instance.clear,

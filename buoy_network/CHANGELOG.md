@@ -1,3 +1,8 @@
+## 0.3.0
+
+- Refactored onto the shared `buoy_shared_ui` package (list/badge/filter widgets,
+  DataViewer, modal chrome now come from there). No change to capture behavior.
+
 ## 0.2.0
 
 - Zero-config setup: mount one `BuoyDevTools` widget and installed tools
