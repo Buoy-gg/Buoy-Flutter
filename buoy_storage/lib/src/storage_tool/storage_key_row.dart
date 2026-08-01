@@ -31,6 +31,9 @@ class StorageKeyRow extends StatelessWidget {
     this.onHideKey,
     this.isPinned = false,
     this.onTogglePin,
+    this.onEditKey,
+    this.onToggleKey,
+    this.editBlockedReason,
   });
 
   final StorageKeyInfo info;
@@ -41,6 +44,22 @@ class StorageKeyRow extends StatelessWidget {
   final ValueChanged<StorageKeyInfo>? onHideKey;
   final bool isPinned;
   final ValueChanged<String>? onTogglePin;
+
+  /// Open the full-screen editor for this key. Omit to keep the row read-only —
+  /// the Edit affordance only appears when a host supplies this.
+  ///
+  /// The card deliberately doesn't edit anything itself: a tree, six structural
+  /// actions and a value field do not fit under a row, which is what this
+  /// replaced. See `StorageKeyEditorScreen`.
+  final ValueChanged<StorageKeyInfo>? onEditKey;
+
+  /// Flip a boolean straight from the card. A boolean has two states, so an
+  /// editor to choose one is a screen whose only job is to offer the value you
+  /// didn't pick.
+  final ValueChanged<StorageKeyInfo>? onToggleKey;
+
+  /// Why this key can't be edited (read-only instance, buffer, biometric).
+  final String? editBlockedReason;
 
   static ({Color color, String label, String sublabel}) _statusConfig(
     String status,
@@ -134,6 +153,10 @@ class StorageKeyRow extends StatelessWidget {
         isJsonData: isJsonData,
         parsed: parsed,
         formattedValue: _formatValue(value),
+        isBoolean: isBoolean,
+        onEditKey: onEditKey,
+        onToggleKey: onToggleKey,
+        editBlockedReason: editBlockedReason,
       ),
     );
   }
@@ -152,6 +175,10 @@ class _ExpandedBody extends StatelessWidget {
     required this.isJsonData,
     required this.parsed,
     required this.formattedValue,
+    required this.isBoolean,
+    required this.onEditKey,
+    required this.onToggleKey,
+    required this.editBlockedReason,
   });
 
   final StorageKeyInfo info;
@@ -165,6 +192,12 @@ class _ExpandedBody extends StatelessWidget {
   final bool isJsonData;
   final Object? parsed;
   final String formattedValue;
+  final bool isBoolean;
+  final ValueChanged<StorageKeyInfo>? onEditKey;
+  final ValueChanged<StorageKeyInfo>? onToggleKey;
+  final String? editBlockedReason;
+
+  bool get _canEdit => onEditKey != null && editBlockedReason == null;
 
   @override
   Widget build(BuildContext context) {
@@ -265,12 +298,54 @@ class _ExpandedBody extends StatelessWidget {
               ),
             ],
           ),
-        if (onTogglePin != null || onHideKey != null) ...[
+        if (editBlockedReason case final reason?) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 70,
+                child: Text(
+                  'Edit:',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: MacOSColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  reason,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: MacOSColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        // Three actions, and only one of them edits. Edit is the primary and it
+        // leads somewhere; pin and hide only change how this list reads.
+        if (onTogglePin != null || onHideKey != null || _canEdit) ...[
           const SizedBox(height: 4),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
+              if (_canEdit)
+                _ActionChip(
+                  icon: BuoyIcons.edit3,
+                  label: isBoolean && onToggleKey != null ? 'Toggle' : 'Edit',
+                  color: MacOSColors.success,
+                  filled: true,
+                  onTap: () => isBoolean && onToggleKey != null
+                      ? onToggleKey!(info)
+                      : onEditKey!(info),
+                ),
               if (onTogglePin != null)
                 _ActionChip(
                   icon: BuoyIcons.pin,
@@ -301,6 +376,7 @@ class _ActionChip extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.active = false,
+    this.filled = false,
   });
 
   final LucideIcon icon;
@@ -309,36 +385,47 @@ class _ActionChip extends StatelessWidget {
   final VoidCallback onTap;
   final bool active;
 
+  /// Filled, and first — the one action in this row that changes anything
+  /// (RN `editButton`: padV 8 / padH 14 / radius 8, 12px bold on the base bg).
+  final bool filled;
+
   @override
   Widget build(BuildContext context) {
+    final foreground = filled ? MacOSColors.backgroundBase : color;
     return TouchableOpacity(
       activeOpacity: 0.2,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+        padding: filled
+            ? const EdgeInsets.symmetric(vertical: 8, horizontal: 14)
+            : const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
         decoration: BoxDecoration(
-          color: active
-              ? MacOSColors.info.hexAlpha(0x15)
-              : MacOSColors.backgroundCard,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: active
-                ? MacOSColors.info.hexAlpha(0x44)
-                : MacOSColors.borderDefault,
-          ),
+          color: filled
+              ? color
+              : (active
+                    ? MacOSColors.info.hexAlpha(0x15)
+                    : MacOSColors.backgroundCard),
+          borderRadius: BorderRadius.circular(filled ? 8 : 6),
+          border: filled
+              ? null
+              : Border.all(
+                  color: active
+                      ? MacOSColors.info.hexAlpha(0x44)
+                      : MacOSColors.borderDefault,
+                ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            BuoyGlyph(icon, size: 12, color: color),
+            BuoyGlyph(icon, size: filled ? 13 : 12, color: foreground),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-                color: color,
+                fontSize: filled ? 12 : 11,
+                fontWeight: filled ? FontWeight.w700 : FontWeight.w600,
+                fontFamily: filled ? null : 'monospace',
+                color: foreground,
               ),
             ),
           ],

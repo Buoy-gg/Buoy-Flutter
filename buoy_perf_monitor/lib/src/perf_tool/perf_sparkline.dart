@@ -154,7 +154,9 @@ class PerfSparkline extends StatelessWidget {
     this.height,
   });
 
-  /// Newest-last sample history (the controller keeps ~120).
+  /// Newest-last sample history (the controller keeps ~34s — enough to cover
+  /// the 30 completed-second buckets at any wall-clock phase, so the leftmost
+  /// column never drains mid-second).
   final List<PerfSample> history;
 
   /// Which channel to chart.

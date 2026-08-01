@@ -855,6 +855,20 @@ const BuoyIconData downloadGlyph = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// edit-3
+// ----------------------------------------------------------------------
+
+const BuoyIconData edit3Glyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifLine(x1: -9.0, y1: 9.0, x2: 5.0, y2: -5.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 3.0, y1: -7.0, x2: 7.0, y2: -3.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 0.0, y1: 8.0, x2: 9.0, y2: 8.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // eye-off
 // ----------------------------------------------------------------------
 
@@ -1507,6 +1521,7 @@ const Map<String, BuoyIconData> buoyGlyphsByName = <String, BuoyIconData>{
   'crop': cropGlyph,
   'database': databaseGlyph,
   'download': downloadGlyph,
+  'edit-3': edit3Glyph,
   'eye-off': eyeOffGlyph,
   'eye': eyeGlyph,
   'file-text': fileTextGlyph,

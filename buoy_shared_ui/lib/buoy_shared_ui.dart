@@ -77,6 +77,13 @@ export 'src/widgets/diff_mode_tabs.dart';
 export 'src/widgets/event_stepper_footer.dart';
 export 'src/widgets/view_toggle_cards.dart';
 
+// Tree-editing stack (dataViewer/jsonOps + treeActions + DataTreeActionDock) —
+// the structural half of a value editor. `DataViewer` reads the selection, this
+// decides what the selection can DO, and the dock renders it.
+export 'src/data_viewer/json_ops.dart';
+export 'src/data_viewer/tree_actions.dart';
+export 'src/widgets/data_tree_action_dock.dart';
+
 // Widgets (new shared ports)
 export 'src/widgets/collapsible_section.dart';
 export 'src/widgets/compact_filter_chips.dart';

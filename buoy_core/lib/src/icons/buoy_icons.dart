@@ -41,6 +41,7 @@ class BuoyIcons {
   static const LucideIcon eyeOff = eyeOffGlyph;
   static const LucideIcon fileText = fileTextGlyph;
   static const LucideIcon copy = copyGlyph;
+  static const LucideIcon edit3 = edit3Glyph;
   static const LucideIcon hash = hashGlyph;
   static const LucideIcon box = boxGlyph;
   static const LucideIcon alertTriangle = alertTriangleGlyph;

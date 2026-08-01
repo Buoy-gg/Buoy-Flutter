@@ -31,7 +31,12 @@ import 'fps_derive.dart';
 import 'hud_preferences.dart';
 import 'proc_cpu.dart';
 
-const int _historySize = 120;
+/// The HUD sparkline draws the last 30 COMPLETED wall-clock seconds, so its
+/// left edge sits up to ~31s behind `now` late in a second. RN's 120 samples
+/// (× 250ms = 29.75s) fall short of that: the oldest bucket's samples evict
+/// mid-second and the chart's leftmost column blanks then refills at 1 Hz.
+/// 136 samples ≈ 33.75s covers the 31s worst case plus timer-jitter slack.
+const int _historySize = 136;
 const int _sampleIntervalMs = 250;
 
 /// Android `_SC_CLK_TCK` — universally 100 on Android/Linux.

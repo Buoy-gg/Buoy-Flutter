@@ -12,14 +12,27 @@ class StorageKeyInfo {
   StorageKeyInfo({
     required this.key,
     required this.value,
+    this.rawValue,
     this.storageType = 'async',
     this.status = 'optional_present',
     this.category = 'optional',
     this.instanceId,
+    this.valueType,
   });
 
   final String key;
+
+  /// The value after `parseValue` — a stringified JSON blob arrives here as the
+  /// Map/List it encodes, which is what the browser and the editor both render.
   final Object? value;
+
+  /// The value as the backend actually holds it, before `parseValue`.
+  ///
+  /// shared_preferences is typed, so the editor has to know whether a key sits
+  /// in a bool slot or a String slot holding JSON — a distinction [value]
+  /// deliberately erases. Null for backends that only store strings.
+  final Object? rawValue;
+
   final String storageType;
 
   /// required_present | required_missing | required_wrong_value |
@@ -29,6 +42,11 @@ class StorageKeyInfo {
   /// required | optional.
   final String category;
   final String? instanceId;
+
+  /// MMKV native value type (string | number | boolean | buffer), when the row
+  /// came from a registered MMKV backend. Decides what the editor writes back —
+  /// and `buffer` is why some rows can't be edited at all.
+  final String? valueType;
 }
 
 /// One key's event history (RN `StorageKeyConversation`).

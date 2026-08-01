@@ -376,6 +376,7 @@ class _StorageModalState extends State<StorageModal> {
           _selectedHistoryEventIndex = null;
         }),
         onKeysLoaded: (keys) => _browserKeys = keys,
+        applySafeAreaInset: _modalMode == JsModalMode.bottomSheet,
       );
     }
 
