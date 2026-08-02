@@ -42,6 +42,10 @@ class _NetworkModalState extends State<NetworkModal> {
   bool _showFilterView = false;
   String _activeTab = 'filters';
   bool _isSearchActive = false;
+  /// JsModal owns the mode; the only thing this modal needs it for is the
+  /// detail footer's bottom inset — a bottom sheet sits on the home indicator,
+  /// a floating window does not (same call StorageModal makes).
+  JsModalMode _modalMode = JsModalMode.bottomSheet;
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
 
@@ -108,6 +112,7 @@ class _NetworkModalState extends State<NetworkModal> {
       onClose: widget.onClose,
       onMinimize: widget.onMinimize,
       persistenceKey: '@react_buoy_network_modal',
+      onModeChange: (mode) => setState(() => _modalMode = mode),
       headerContent: Padding(
         padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
         child: _headerContent(),
@@ -127,7 +132,18 @@ class _NetworkModalState extends State<NetworkModal> {
   Widget _screen() {
     final selectedEvent = _selectedEvent;
     if (selectedEvent != null) {
-      return NetworkDetailView(event: selectedEvent);
+      return Column(
+        children: [
+          Expanded(child: NetworkDetailView(event: selectedEvent)),
+          _DetailStepper(
+            event: selectedEvent,
+            paused: _paused,
+            filter: _filter,
+            applySafeAreaInset: _modalMode == JsModalMode.bottomSheet,
+            onSelect: (event) => setState(() => _selectedEvent = event),
+          ),
+        ],
+      );
     }
     if (_showFilterView) {
       return _FilteredEventsBuilder(
@@ -550,6 +566,62 @@ class _HeaderCopyButtonState extends State<_HeaderCopyButton> {
       decoration: headerActionButtonDecoration(),
       width: 32,
       height: 32,
+    );
+  }
+}
+
+/// Previous / Next footer for the request detail screen — step through
+/// requests without bouncing back to the list.
+///
+/// It wraps only ITSELF in [_FilteredEventsBuilder], never the detail body:
+/// the event stream then rebuilds this one row instead of the whole inspector
+/// (header cards, DataViewer trees, collapsible sections) every time a request
+/// lands. Stepping walks the exact list the list screen renders, so the search
+/// box and the status chips re-scope it in place — the counter always reads
+/// "request N of what the list is showing", never "N of everything captured".
+class _DetailStepper extends StatelessWidget {
+  const _DetailStepper({
+    required this.event,
+    required this.paused,
+    required this.filter,
+    required this.applySafeAreaInset,
+    required this.onSelect,
+  });
+
+  final NetworkCaptureEvent event;
+  final bool paused;
+  final NetworkFilter filter;
+
+  /// Only a bottom sheet sits on the home indicator — see [_NetworkModalState].
+  final bool applySafeAreaInset;
+  final ValueChanged<NetworkCaptureEvent> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return _FilteredEventsBuilder(
+      paused: paused,
+      filter: filter,
+      builder: (context, events) {
+        final index = events.indexWhere((e) => e.id == event.id);
+        // Not in the list: the filter changed under it while it was open, or
+        // it aged past the store cap. Nothing coherent to step through, so no
+        // footer rather than a counter that lies.
+        if (index < 0) return const SizedBox.shrink();
+        // The list is newest-first, so "Previous" walks toward the NEWER
+        // request — the same direction as scrolling up.
+        return EventStepperFooter(
+          currentIndex: index,
+          totalItems: events.length,
+          itemLabel: 'Request',
+          applySafeAreaInset: applySafeAreaInset,
+          onPrevious: () {
+            if (index > 0) onSelect(events[index - 1]);
+          },
+          onNext: () {
+            if (index < events.length - 1) onSelect(events[index + 1]);
+          },
+        );
+      },
     );
   }
 }

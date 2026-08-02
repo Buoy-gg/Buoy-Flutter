@@ -70,6 +70,10 @@ class _EventsModalState extends State<EventsModal> {
 
   UnifiedEvent? _selectedEvent;
 
+  bool _isSearchActive = false;
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+
   void Function()? _storeUnsub;
   void Function()? _registryUnsub;
 
@@ -95,6 +99,22 @@ class _EventsModalState extends State<EventsModal> {
     IgnoredPatternsStore.instance.addListener(_onExternalChange);
     subscriberCountNotifier.subscribe(_onSubscriberCountChange);
 
+    _searchFocus.addListener(() {
+      // Stay open while the query still filters the list — collapsing it would
+      // hide why events are missing.
+      if (!_searchFocus.hasFocus &&
+          _isSearchActive &&
+          _searchController.text.isEmpty) {
+        setState(() => _isSearchActive = false);
+      }
+    });
+    // Re-filter from the controller, not TextField.onChanged — with a connected
+    // hardware keyboard the iOS input path can update the editing value without
+    // the user-edit callback firing (seen live in the network tool).
+    _searchController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     _restoreState();
   }
 
@@ -111,6 +131,8 @@ class _EventsModalState extends State<EventsModal> {
         if (id != null) unifiedEventStore.unsubscribeFromSource(id);
       }
     }
+    _searchController.dispose();
+    _searchFocus.dispose();
     MinuteTicker.instance.release();
     super.dispose();
   }
@@ -215,14 +237,27 @@ class _EventsModalState extends State<EventsModal> {
     return patterns.any((p) => urlMatchesIgnoredPattern(url, p));
   }
 
+  /// Header search (RN `matchesSearch`): the two fields the row renders, plus a
+  /// network event's full URL — the title only carries the path, so a query for
+  /// the host or a query-string value would otherwise miss. [query] must already
+  /// be lowercased and trimmed.
+  bool _matchesSearch(UnifiedEvent e, String query) {
+    if (e.title.toLowerCase().contains(query)) return true;
+    if (e.subtitle.toLowerCase().contains(query)) return true;
+    final url = e.data['url'];
+    return url is String && url.toLowerCase().contains(query);
+  }
+
   List<UnifiedEvent> get _filteredEvents {
     final allowed = _allowedEventSources;
     if (allowed.isEmpty) return const [];
+    final query = _searchController.text.trim().toLowerCase();
     return _events
         .where((e) =>
             allowed.contains(e.source) &&
             !_isBuoyInternal(e) &&
-            !_isNetworkIgnored(e))
+            !_isNetworkIgnored(e) &&
+            (query.isEmpty || _matchesSearch(e, query)))
         .toList();
   }
 
@@ -333,6 +368,7 @@ class _EventsModalState extends State<EventsModal> {
             child: UnifiedEventList(
               events: _filteredEvents,
               isCapturing: _isCapturing,
+              searchText: _searchController.text,
               onEventPress: (event) => setState(() => _selectedEvent = event),
             ),
           ),
@@ -373,37 +409,29 @@ class _EventsModalState extends State<EventsModal> {
     }
 
     final total = unifiedEventStore.getEventCount();
+    final hasQuery = _searchController.text.isNotEmpty;
     return ModalHeader(
       children: [
         ModalHeaderContent(
           noMargin: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              const Text(
-                'Events',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: BuoyColors.text,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$total captured',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: BuoyColors.textMuted,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
+          child: _isSearchActive ? _searchField() : _titleBlock(total),
         ),
         ModalHeaderActions(
           children: [
+            if (!_isSearchActive)
+              HeaderActionButton(
+                icon: BuoyIcons.search,
+                color: hasQuery
+                    ? BuoyColors.primary
+                    : BuoyColors.textSecondary,
+                active: hasQuery,
+                onTap: () {
+                  setState(() => _isSearchActive = true);
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => _searchFocus.requestFocus(),
+                  );
+                },
+              ),
             CopyButton(
               value: _exportAll,
               size: 14,
@@ -430,6 +458,100 @@ class _EventsModalState extends State<EventsModal> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _titleBlock(int total) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        const Text(
+          'Events',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: BuoyColors.text,
+            fontFamily: 'monospace',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$total captured',
+          style: const TextStyle(
+            fontSize: 12,
+            color: BuoyColors.textMuted,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _searchField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: BuoyColors.input,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: BuoyColors.border),
+      ),
+      child: Row(
+        children: [
+          const BuoyGlyph(
+            BuoyIcons.search,
+            size: 14,
+            color: BuoyColors.textMuted,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocus,
+                autocorrect: false,
+                onSubmitted: (_) => _searchFocus.unfocus(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: BuoyColors.text,
+                  fontFamily: 'monospace',
+                ),
+                cursorColor: BuoyColors.primary,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  hintText: 'Search events...',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: BuoyColors.textMuted,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ),
+          ),
+          TouchableOpacity(
+            activeOpacity: 0.2,
+            onTap: () {
+              _searchController.clear();
+              _searchFocus.unfocus();
+              setState(() => _isSearchActive = false);
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(left: 6),
+              child: Padding(
+                padding: EdgeInsets.all(4),
+                child: BuoyGlyph(
+                  BuoyIcons.x,
+                  size: 14,
+                  color: BuoyColors.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

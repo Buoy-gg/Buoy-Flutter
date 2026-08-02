@@ -14,6 +14,8 @@ depends on nothing tool-specific.
 
 - ONE interleaved, newest-first timeline across all installed source tools.
 - Per-source filter badges (toggle a source on/off; subscriber + event counts).
+- Header search filters the timeline live as you type (titles, subtitles, full
+  network URLs) — stacks with the source badges.
 - The tools' REAL detail views — a network event opens the same detail page the
   Network tool shows, including the shared Ignore-Domain / Ignore-URL toggles
   that hide matches from **both** the Events and Network lists.

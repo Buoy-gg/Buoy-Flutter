@@ -1,3 +1,10 @@
+## 0.3.1
+
+- Request detail view gains a Previous/Next stepper footer that walks
+  exactly what the list was showing — same pinned rows, filters, and search
+  (or the Saved list and its search when opened from there), with a live
+  `REQUEST N OF M` counter that re-scopes as new requests arrive.
+
 ## 0.3.0
 
 - Refactored onto the shared `buoy_shared_ui` package (list/badge/filter widgets,

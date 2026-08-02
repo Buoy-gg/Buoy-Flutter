@@ -15,15 +15,59 @@ class UnifiedEventList extends StatelessWidget {
     required this.events,
     required this.onEventPress,
     required this.isCapturing,
+    this.searchText = '',
   });
 
   final List<UnifiedEvent> events;
   final ValueChanged<UnifiedEvent> onEventPress;
   final bool isCapturing;
 
+  /// Active header search query — only used to explain an empty list.
+  final String searchText;
+
   @override
   Widget build(BuildContext context) {
     if (events.isEmpty) {
+      // A search that matched nothing looks identical to "nothing captured
+      // yet" — say which one it is, so the header field isn't mistaken for a
+      // dead tool.
+      final query = searchText.trim();
+      if (query.isNotEmpty) {
+        return ColoredBox(
+          color: BuoyColors.base,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'No Matches',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: BuoyColors.text,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No events match "$query".',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: BuoyColors.textMuted,
+                      height: 1.4,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
       return ColoredBox(
         color: BuoyColors.base,
         child: Center(

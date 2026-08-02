@@ -3,7 +3,7 @@ description: >-
   Buoy network inspector for Flutter — captures all dart:io HTTP traffic via
   HttpOverrides (package:http, dio, images) with an in-app panel and live
   streaming to Buoy Desktop.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 

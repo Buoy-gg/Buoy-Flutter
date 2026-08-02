@@ -3,7 +3,7 @@ description: >-
   Buoy unified events timeline for Flutter — one chronological stream aggregating
   every other Buoy tool's events with source badges, filters, detail views, and
   MCP export.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 

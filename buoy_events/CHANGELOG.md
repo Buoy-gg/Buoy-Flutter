@@ -1,3 +1,8 @@
+## 0.3.1
+
+- Header search filters the unified timeline live as you type — matches
+  titles, subtitles, and full network URLs; stacks with the source badges.
+
 ## 0.3.0
 
 - Initial release of the Buoy unified events timeline for Flutter.
