@@ -9,12 +9,21 @@ import 'network_copy_view.dart';
 import 'network_detail_view.dart';
 import 'network_filter.dart';
 import 'network_filter_view.dart';
+import 'network_header_menu.dart';
 import 'network_list_screen.dart';
+import 'overrides/network_override_header_button.dart';
+import 'saved/network_saved_buttons.dart';
+import 'saved/network_saved_store.dart';
+import 'saved/pinned_split.dart';
+import 'saved/network_saved_screen.dart';
+import 'overrides/network_overrides_button.dart';
+import 'overrides/network_overrides_screen.dart';
+import '../overrides/override_rule.dart';
 
 /// Port of NetworkModal — the network tool's root surface. Opens in JsModal
 /// with the RN persistence key (`@react_buoy_network_modal`), a compact
-/// action header (status chips / search / filter / copy / power / clear),
-/// and four screens: list, request detail, Filters tab, Copy tab.
+/// action header (status chips / search / overrides / power / clear / ⋮),
+/// and five screens: list, request detail, Filters tab, Copy tab, Overrides.
 ///
 /// Every screen owns its scrolling, so JsModal's scroll wrapper is disabled
 /// (RN's disableScrollWrapper contract for the virtualized list).
@@ -42,6 +51,12 @@ class _NetworkModalState extends State<NetworkModal> {
   bool _showFilterView = false;
   String _activeTab = 'filters';
   bool _isSearchActive = false;
+  bool _showOverridesView = false;
+  bool _showSavedView = false;
+  String _savedSearch = '';
+  bool _showHeaderMenu = false;
+  OverrideRule? _pendingOverrideDraft;
+  final _overridesKey = GlobalKey<NetworkOverridesScreenState>();
   /// JsModal owns the mode; the only thing this modal needs it for is the
   /// detail footer's bottom inset — a bottom sheet sits on the home indicator,
   /// a floating window does not (same call StorageModal makes).
@@ -123,13 +138,73 @@ class _NetworkModalState extends State<NetworkModal> {
       child: SizedBox.expand(
         child: ColoredBox(
           color: MacOSColors.backgroundBase,
-          child: _screen(),
+          child: Stack(
+            children: [
+              Positioned.fill(child: _screen()),
+              // The dropdown lives over the BODY, not in the header: the header
+              // is a fixed-height row that clips anything overflowing it, and
+              // the body's top-right is exactly where a menu from ⋮ belongs.
+              if (_showHeaderMenu)
+                NetworkHeaderMenu(
+                  onClose: () => setState(() => _showHeaderMenu = false),
+                  children: [
+                    NetworkHeaderMenuItem(
+                      icon: BuoyIcons.filter,
+                      label: 'Filters',
+                      iconColor: _filter.hasActiveFacets
+                          ? MacOSColors.info
+                          : MacOSColors.textSecondary,
+                      onTap: () => setState(() {
+                        _showHeaderMenu = false;
+                        _activeTab = 'filters';
+                        _showFilterView = true;
+                      }),
+                    ),
+                    NetworkHeaderMenuItem(
+                      icon: BuoyIcons.bookmark,
+                      label: 'Saved requests',
+                      onTap: () => setState(() {
+                        _showHeaderMenu = false;
+                        _showSavedView = true;
+                      }),
+                    ),
+                    NetworkHeaderMenuItem(
+                      icon: BuoyIcons.copy,
+                      label: 'Copy requests',
+                      onTap: () => setState(() {
+                        _showHeaderMenu = false;
+                        _activeTab = 'copy';
+                        _showFilterView = true;
+                      }),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  /// Screen order is a STACK, not a list of independent flags.
+  ///
+  /// Overrides is entered FROM the detail view (which keeps its selection), so
+  /// it has to win over detail. Detail in turn has to win over Saved, or
+  /// tapping a saved row sets the selection and nothing visibly happens —
+  /// exactly the bug this ordering was written to fix. Backing out of each one
+  /// falls through to the screen it was opened from.
   Widget _screen() {
+    if (_showOverridesView) {
+      return NetworkOverridesScreen(
+        key: _overridesKey,
+        applySafeAreaInset: _modalMode == JsModalMode.bottomSheet,
+        pendingDraft: _pendingOverrideDraft,
+        onPendingConsumed: () =>
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => setState(() => _pendingOverrideDraft = null),
+            ),
+      );
+    }
     final selectedEvent = _selectedEvent;
     if (selectedEvent != null) {
       return Column(
@@ -139,10 +214,27 @@ class _NetworkModalState extends State<NetworkModal> {
             event: selectedEvent,
             paused: _paused,
             filter: _filter,
+            // Opened from the Saved screen? Step through THAT list. Walking
+            // the live list from a saved request means "Next" leaves the set
+            // you were reading and the counter describes a different list than
+            // the one you came from.
+            events: _showSavedView
+                ? selectSavedEvents(
+                    NetworkSavedStore.instance.state.savedRecords,
+                    _savedSearch,
+                  )
+                : null,
             applySafeAreaInset: _modalMode == JsModalMode.bottomSheet,
             onSelect: (event) => setState(() => _selectedEvent = event),
           ),
         ],
+      );
+    }
+    if (_showSavedView) {
+      return NetworkSavedScreen(
+        search: _savedSearch,
+        onSearchChange: (value) => setState(() => _savedSearch = value),
+        onEventPress: (event) => setState(() => _selectedEvent = event),
       );
     }
     if (_showFilterView) {
@@ -193,15 +285,68 @@ class _NetworkModalState extends State<NetworkModal> {
       );
     }
 
-    if (_selectedEvent != null) {
+    if (_showOverridesView) {
       return ModalHeader(
         children: [
-          ModalHeaderBack(onBack: () => setState(() => _selectedEvent = null)),
-          const ModalHeaderContent(title: 'Request Details', centered: true),
+          ModalHeaderBack(
+            onBack: () {
+              // Back leaves the editor first, then the screen — otherwise a
+              // half-written rule vanishes with one tap and no way back.
+              final screen = _overridesKey.currentState;
+              if (screen != null && screen.isEditing) {
+                screen.closeEditor();
+                return;
+              }
+              setState(() => _showOverridesView = false);
+            },
+          ),
+          const ModalHeaderContent(
+            title: 'Response Overrides',
+            centered: true,
+          ),
         ],
       );
     }
 
+    if (_selectedEvent != null) {
+      return ModalHeader(
+        children: [
+          // Clears only the selection, so backing out of a request opened from
+          // the Saved screen returns THERE rather than to the live list.
+          ModalHeaderBack(onBack: () => setState(() => _selectedEvent = null)),
+          const ModalHeaderContent(title: 'Request Details', centered: true),
+          ModalHeaderActions(
+            children: [
+              NetworkOverrideHeaderButton(
+                event: _selectedEvent!,
+                onOpen: (draft) => setState(() {
+                  _pendingOverrideDraft = draft;
+                  _showOverridesView = true;
+                }),
+              ),
+              const SizedBox(width: 6),
+              NetworkDetailPinActions(eventId: _selectedEvent!.id),
+            ],
+          ),
+        ],
+      );
+    }
+
+    if (_showSavedView) {
+      return ModalHeader(
+        children: [
+          ModalHeaderBack(onBack: () => setState(() => _showSavedView = false)),
+          const ModalHeaderContent(title: 'Saved Requests', centered: true),
+        ],
+      );
+    }
+
+    // WHAT STAYS IN THE BAR, and why: anything that communicates STATE. The
+    // badges (what happened), the overrides flask (is the app being lied to),
+    // the power toggle (are we capturing), and Clear — the reproduce loop is
+    // clear → repro → read, so burying the first step doubles every cycle.
+    // Search stays because it's the only way through 500 rows. Filters and Copy
+    // are destinations, so they moved into ⋮.
     return ModalHeader(
       children: [
         ModalHeaderContent(
@@ -219,24 +364,23 @@ class _NetworkModalState extends State<NetworkModal> {
                 );
               },
             ),
-            HeaderActionButton(
-              icon: BuoyIcons.filter,
-              color: _filter.hasActiveFacets
-                  ? MacOSColors.info
-                  : MacOSColors.textMuted,
-              active: _filter.hasActiveFacets,
-              onTap: () => setState(() => _showFilterView = true),
-            ),
-            _HeaderCopyButton(
-              paused: _paused,
-              filter: _filter,
-              copySettings: _copySettings,
+            NetworkOverridesButton(
+              onTap: () => setState(() => _showOverridesView = true),
             ),
             PowerToggleButton(
               isEnabled: !_paused,
               onToggle: () => setState(() => _paused = !_paused),
             ),
             _HeaderClearButton(paused: _paused),
+            NetworkHeaderMenuButton(
+              isOpen: _showHeaderMenu,
+              hasIndicator: _filter.hasActiveFacets,
+              // Toggles rather than opens: the dropdown renders in the body, so
+              // it never covers the header and a second tap lands back here.
+              // Opening again on that tap would look like nothing happened.
+              onTap: () =>
+                  setState(() => _showHeaderMenu = !_showHeaderMenu),
+            ),
           ],
         ),
       ],
@@ -586,11 +730,15 @@ class _DetailStepper extends StatelessWidget {
     required this.filter,
     required this.applySafeAreaInset,
     required this.onSelect,
+    this.events,
   });
 
   final NetworkCaptureEvent event;
   final bool paused;
   final NetworkFilter filter;
+
+  /// The list to step through, when it isn't the live one.
+  final List<NetworkCaptureEvent>? events;
 
   /// Only a bottom sheet sits on the home indicator — see [_NetworkModalState].
   final bool applySafeAreaInset;
@@ -598,29 +746,33 @@ class _DetailStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supplied = events;
+    if (supplied != null) return _footer(supplied);
     return _FilteredEventsBuilder(
       paused: paused,
       filter: filter,
-      builder: (context, events) {
-        final index = events.indexWhere((e) => e.id == event.id);
-        // Not in the list: the filter changed under it while it was open, or
-        // it aged past the store cap. Nothing coherent to step through, so no
-        // footer rather than a counter that lies.
-        if (index < 0) return const SizedBox.shrink();
-        // The list is newest-first, so "Previous" walks toward the NEWER
-        // request — the same direction as scrolling up.
-        return EventStepperFooter(
-          currentIndex: index,
-          totalItems: events.length,
-          itemLabel: 'Request',
-          applySafeAreaInset: applySafeAreaInset,
-          onPrevious: () {
-            if (index > 0) onSelect(events[index - 1]);
-          },
-          onNext: () {
-            if (index < events.length - 1) onSelect(events[index + 1]);
-          },
-        );
+      builder: (context, events) => _footer(events),
+    );
+  }
+
+  Widget _footer(List<NetworkCaptureEvent> events) {
+    final index = events.indexWhere((e) => e.id == event.id);
+    // Not in the list: the filter changed under it while it was open, or it
+    // aged past the store cap. Nothing coherent to step through, so no footer
+    // rather than a counter that lies.
+    if (index < 0) return const SizedBox.shrink();
+    // The list is newest-first, so "Previous" walks toward the NEWER request —
+    // the same direction as scrolling up.
+    return EventStepperFooter(
+      currentIndex: index,
+      totalItems: events.length,
+      itemLabel: 'Request',
+      applySafeAreaInset: applySafeAreaInset,
+      onPrevious: () {
+        if (index > 0) onSelect(events[index - 1]);
+      },
+      onNext: () {
+        if (index < events.length - 1) onSelect(events[index + 1]);
       },
     );
   }

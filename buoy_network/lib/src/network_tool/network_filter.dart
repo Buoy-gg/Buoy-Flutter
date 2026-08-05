@@ -18,6 +18,7 @@ class NetworkFilter {
     this.contentTypes,
     this.searchText,
     this.host,
+    this.hideImages = true,
   });
 
   final List<String>? methods;
@@ -26,6 +27,22 @@ class NetworkFilter {
   final String? searchText;
   final String? host;
 
+  /// Hide image requests. **On by default.**
+  ///
+  /// A screen full of sprites or avatars buries the request you opened the
+  /// tool to look at, and images are almost never that request. The other
+  /// facets default to "show everything" because they answer a question you
+  /// asked; this one answers a question everybody has.
+  ///
+  /// Deliberately NOT part of [hasActiveFacets] — see there.
+  final bool hideImages;
+
+  /// Drives the ⋮ indicator dot: "you changed something".
+  ///
+  /// [hideImages] is excluded even though it filters, because it is on by
+  /// default — counting it would light the dot permanently, and a warning
+  /// that is always on is a warning nobody reads. The list says so instead,
+  /// with a strip naming exactly how many rows are hidden.
   bool get hasActiveFacets =>
       status != null ||
       (methods?.isNotEmpty ?? false) ||
@@ -37,6 +54,7 @@ class NetworkFilter {
     Object? contentTypes = _sentinel,
     Object? searchText = _sentinel,
     Object? host = _sentinel,
+    bool? hideImages,
   }) {
     return NetworkFilter(
       methods: methods == _sentinel ? this.methods : methods as List<String>?,
@@ -47,6 +65,7 @@ class NetworkFilter {
       searchText:
           searchText == _sentinel ? this.searchText : searchText as String?,
       host: host == _sentinel ? this.host : host as String?,
+      hideImages: hideImages ?? this.hideImages,
     );
   }
 
@@ -70,6 +89,37 @@ String contentTypeLabel(NetworkCaptureEvent event) {
   if (contentType.contains('audio')) return 'AUDIO';
   if (contentType.contains('form')) return 'FORM';
   return 'OTHER';
+}
+
+/// File extensions that mean "image" when the response hasn't arrived yet.
+const Set<String> _imageExtensions = {
+  'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp', 'avif', 'heic',
+  'tiff', 'apng',
+};
+
+/// Is this an image request?
+///
+/// Checked two ways on purpose. `content-type` is authoritative but only
+/// exists once the response lands — an in-flight image, or a 304 that carries
+/// no content-type, would slip through and flash into the list. The URL
+/// extension covers those, and covers them BEFORE the request completes, which
+/// is when the spam is most disruptive.
+bool isImageEvent(NetworkCaptureEvent e) {
+  final headers = e.responseHeaders.isNotEmpty
+      ? e.responseHeaders
+      : e.requestHeaders;
+  final contentType = (headers['content-type'] ?? headers['Content-Type'] ?? '')
+      .toLowerCase();
+  if (contentType.startsWith('image/')) return true;
+  // An explicit non-image content-type is the end of it: a JSON endpoint that
+  // happens to live at `/thumbnail.png` is still JSON.
+  if (contentType.isNotEmpty) return false;
+
+  final path = Uri.tryParse(e.url)?.path.toLowerCase();
+  if (path == null) return false;
+  final dot = path.lastIndexOf('.');
+  if (dot == -1 || dot == path.length - 1) return false;
+  return _imageExtensions.contains(path.substring(dot + 1));
 }
 
 bool isSuccessEvent(NetworkCaptureEvent e) {
@@ -99,6 +149,15 @@ List<NetworkCaptureEvent> filterNetworkEvents(
       : null;
 
   var filtered = events;
+
+  // First, because it's the one that removes the most and everything after is
+  // a scan.
+  if (filter.hideImages) {
+    filtered = [
+      for (final e in filtered)
+        if (!isImageEvent(e)) e,
+    ];
+  }
 
   if (methodSet != null) {
     filtered = [

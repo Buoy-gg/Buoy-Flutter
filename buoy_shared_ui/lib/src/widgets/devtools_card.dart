@@ -14,6 +14,7 @@ class DevToolsCard extends StatelessWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.marginHorizontal = 12,
     this.borderLeftColor,
     this.activeOpacity = 0.8,
@@ -21,6 +22,7 @@ class DevToolsCard extends StatelessWidget {
 
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final double marginHorizontal;
   final Color? borderLeftColor;
   final double activeOpacity;
@@ -51,11 +53,12 @@ class DevToolsCard extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: marginHorizontal, vertical: 4),
-      child: onTap == null
+      child: onTap == null && onLongPress == null
           ? card
           : TouchableOpacity(
               activeOpacity: activeOpacity,
               onTap: onTap,
+              onLongPress: onLongPress,
               child: card,
             ),
     );

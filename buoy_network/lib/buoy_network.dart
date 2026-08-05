@@ -12,3 +12,18 @@ export 'package:buoy_core/buoy_core.dart'
 export 'src/network_capture.dart';
 export 'src/network_tool/network_modal.dart';
 export 'src/register.dart';
+
+// Pinned + saved requests — snapshots that outlive Clear, the 500-event cap
+// and an app restart.
+export 'src/network_tool/saved/network_saved_screen.dart';
+export 'src/network_tool/saved/network_saved_store.dart';
+export 'src/network_tool/saved/pinned_split.dart';
+
+// Response overrides — force a status/body, a failure or a delay on matching
+// requests. Buoy's answer to Chrome DevTools' Local Overrides, plus the
+// status/latency/failure control Chrome doesn't have.
+export 'src/overrides/match_rule.dart';
+export 'src/overrides/override_rule.dart';
+export 'src/overrides/override_rules_store.dart';
+export 'src/overrides/presets.dart';
+export 'src/overrides/resolve_override.dart';

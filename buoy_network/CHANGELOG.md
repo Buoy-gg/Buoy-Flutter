@@ -1,3 +1,15 @@
+## 0.3.2
+
+- Chrome-style **response overrides**: match rules (URL pattern + method) that
+  edit or fully synthesize responses — status, headers, body, delay — with a
+  rule editor, presets, and per-rule enable toggles. Persisted under the same
+  storage key as RN, and drivable from Buoy Desktop / MCP via the new
+  override sync actions.
+- **Saved requests**: pin or save any request as a snapshot that survives
+  Clear, the capture cap, and app restarts, with a dedicated Saved screen and
+  pinned-row split in the list.
+- Response-editor explorer views for nested body data; header action menu.
+
 ## 0.3.1
 
 - Request detail view gains a Previous/Next stepper footer that walks

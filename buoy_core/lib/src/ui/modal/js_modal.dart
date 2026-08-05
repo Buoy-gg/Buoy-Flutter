@@ -9,6 +9,7 @@ import '../../storage.dart';
 import '../buoy_theme.dart';
 import '../touchable_opacity.dart';
 import 'modal_settings.dart';
+import 'modal_visibility.dart';
 
 /// Flutter port of shared-ui's `JsModal` — the draggable/resizable tool
 /// modal with two modes:
@@ -106,6 +107,11 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
   bool _entranceStarted = false;
   bool _closing = false;
   bool _interacting = false; // dragging or resizing → accent border
+
+  /// Host-driven visibility (RN AppHost `visible={!app.minimized}`). While
+  /// false the modal renders offstage but stays MOUNTED, so tool state
+  /// survives minimize. Defaults true when no [BuoyModalVisibility] ancestor.
+  bool _visible = true;
   Timer? _persistTimer;
 
   // Gesture scratch state (fields, not locals: a setState mid-gesture must
@@ -163,6 +169,28 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _restore();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = BuoyModalVisibility.of(context);
+    if (visible == _visible) return;
+    _visible = visible;
+    if (visible) {
+      // Restore from minimize: _requestMinimize left _closing true and the
+      // exit animation settled — replay the entrance (RN re-runs its
+      // visibility effect when `visible` flips back on).
+      _closing = false;
+      _entranceStarted = false;
+    } else {
+      _slide.stop();
+      _fade.stop();
+      _interacting = false;
+      _controlsDismissTimer?.cancel();
+      _controlsAnim.stop();
+      _controlsExpanded = false;
+    }
   }
 
   Future<void> _restore() async {
@@ -493,14 +521,23 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
     if (!_loaded) return const SizedBox.shrink();
     final screen = MediaQuery.sizeOf(context);
     _floatRect.value ??= _defaultFloatRect(screen);
-    if (!_entranceStarted) _startEntrance(screen.height);
+    if (_visible && !_entranceStarted) _startEntrance(screen.height);
 
+    // Visibility(maintainState) = Offstage + TickerMode: while minimized the
+    // subtree stays mounted (state/subscriptions live on) but paints nothing
+    // and is excluded from hit testing — RN renders minimized modals
+    // offscreen with pointerEvents="none" for the same effect. Kept INSIDE
+    // Positioned.fill so the ParentData chain to the host Stack is intact.
     return Positioned.fill(
-      child: Material(
-        type: MaterialType.transparency,
-        child: _mode == JsModalMode.bottomSheet
-            ? _bottomSheet(screen)
-            : _floating(),
+      child: Visibility(
+        visible: _visible,
+        maintainState: true,
+        child: Material(
+          type: MaterialType.transparency,
+          child: _mode == JsModalMode.bottomSheet
+              ? _bottomSheet(screen)
+              : _floating(),
+        ),
       ),
     );
   }

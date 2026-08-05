@@ -69,9 +69,15 @@ class _DialOverlayState extends State<DialOverlay>
   int _page = 0;
   bool _settingsOpen = false;
 
+  /// Usage-ranked tools, snapshotted when the dial opens (RN `rankedIds`).
+  /// The order stays stable while open so icons don't jump positions
+  /// mid-interaction.
+  late List<BuoyTool> _rankedTools;
+
   @override
   void initState() {
     super.initState();
+    _rankTools();
     _backdrop = AnimationController(vsync: this);
     _dialScale = AnimationController.unbounded(vsync: this);
     _rotation = AnimationController(vsync: this);
@@ -127,6 +133,35 @@ class _DialOverlayState extends State<DialOverlay>
     });
   }
 
+  /// RN DialDevTools: rank synchronously from the cache; if usage data is
+  /// still loading, show default order and re-rank once it's ready.
+  void _rankTools() {
+    // Read widget.tools at call time so a late re-rank (usage load finishing
+    // after a widget update) never resurrects a stale tools list.
+    List<BuoyTool> rank() {
+      final byId = {for (final tool in widget.tools) tool.id: tool};
+      return [
+        for (final id in widget.storage.rankDialToolIds(
+          [for (final tool in widget.tools) tool.id],
+        ))
+          byId[id]!,
+      ];
+    }
+
+    _rankedTools = rank();
+    if (!widget.storage.isDialUsageLoaded) {
+      widget.storage.loadDialUsage().then((_) {
+        if (mounted && !_closing) setState(() => _rankedTools = rank());
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(DialOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.tools, widget.tools)) _rankTools();
+  }
+
   void _toggleSettings() {
     if (_closing) return;
     setState(() => _settingsOpen = !_settingsOpen);
@@ -179,6 +214,8 @@ class _DialOverlayState extends State<DialOverlay>
   /// the 50ms action delay launch the tool and run the close sequence.
   void _handleIconTap(BuoyTool tool) {
     if (_closing) return;
+    // Record usage so frequently/recently used tools rank toward page 1.
+    widget.storage.recordDialToolUsage(tool.id);
     _pulseCenterButton();
     Timer(const Duration(milliseconds: 50), () {
       if (!mounted) return;
@@ -209,7 +246,7 @@ class _DialOverlayState extends State<DialOverlay>
   }
 
   int get _pageCount =>
-      math.max(1, (widget.tools.length / maxDialSlots).ceil());
+      math.max(1, (_rankedTools.length / maxDialSlots).ceil());
 
   void _goToPage(int page) {
     setState(() => _page = page.clamp(0, _pageCount - 1));
@@ -328,8 +365,8 @@ class _DialOverlayState extends State<DialOverlay>
     );
     final pos = getIconPosition(index, maxDialSlots, layout.iconRadius);
     final toolIndex = _page * maxDialSlots + index;
-    final tool = toolIndex < widget.tools.length
-        ? widget.tools[toolIndex]
+    final tool = toolIndex < _rankedTools.length
+        ? _rankedTools[toolIndex]
         : null;
 
     return Transform.translate(

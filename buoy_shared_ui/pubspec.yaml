@@ -2,7 +2,7 @@ name: buoy_shared_ui
 description: >-
   Shared UI kit and stores for the Buoy Flutter devtools — the macOS/Buoy color
   systems, list/badge/filter widgets, event-store base, and dev-tool storage keys.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 

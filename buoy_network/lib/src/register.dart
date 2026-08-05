@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:buoy_core/buoy_core.dart';
 import 'package:buoy_shared_ui/buoy_shared_ui.dart';
 import 'package:flutter/material.dart';
 
 import 'network_capture.dart';
+import 'overrides/override_rules_store.dart';
 import 'network_tool/network_detail_view.dart';
 import 'network_tool/network_event_row.dart';
 import 'network_tool/network_modal.dart';
@@ -22,6 +25,13 @@ void registerBuoyNetwork({bool installHttpOverrides = true}) {
 
   // Keep capture on for the in-app panel even when no desktop is watching.
   NetworkEventStore.instance.subscribe(() {});
+
+  // Hydrate the override rules here rather than on first subscribe: a rule has
+  // to be able to fire from app boot, with the Network tool closed and nothing
+  // watching. Requests made before this read completes are not overridden —
+  // the same startup race RN has, and the reason the launch-safety guard
+  // exists rather than being the only protection.
+  unawaited(OverrideRulesStore.instance.ensureLoaded());
 
   // Contribute the network source to the events-tool timeline (RN
   // `tryLoadNetworkSource` in autoDiscoverEventSources.ts).

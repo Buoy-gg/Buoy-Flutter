@@ -248,13 +248,19 @@ ${pretty(event.responseData)}
                         color: MacOSColors.textPrimary,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Text(
-                        '(${_localTime(event.timestamp)})',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: MacOSColors.textMuted,
+                    // Flexible because the relative time is unbounded: a
+                    // restored pin can read "3 months ago", and an unguarded
+                    // Row paints the overflow stripes instead of eliding.
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          '(${_localTime(event.timestamp)})',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: MacOSColors.textMuted,
+                          ),
                         ),
                       ),
                     ),
@@ -289,6 +295,23 @@ ${pretty(event.responseData)}
                       ],
                     ),
                   ),
+                // Absent — not zeroed — when unmeasurable. See NetworkTimings.
+                if (event.timings case final timings?) ...[
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: 8),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: MacOSColors.borderDefault),
+                      ),
+                    ),
+                    child: _TimingPhases(
+                      timings: timings,
+                      total:
+                          event.duration ?? timings.ttfb + timings.download,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -548,6 +571,121 @@ class _UrlBreakdownState extends State<_UrlBreakdown> {
 }
 
 /// CollapsibleSection — card with a tappable hover-tinted header.
+/// Ports RN's `TimingPhases` — the request waterfall.
+class _TimingPhases extends StatelessWidget {
+  const _TimingPhases({required this.timings, required this.total});
+
+  final NetworkTimings timings;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    // Guard the divisor: a sub-millisecond request would otherwise divide by 0.
+    final span = total < 1 ? 1 : total;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      // RN phaseList: gap 8.
+      spacing: 8,
+      children: [
+        _row(
+          // Deliberately NOT "server time". Measured from Dart, this includes
+          // queueing, DNS, TLS and sending the request — everything before the
+          // headers land. The subtitle says so rather than implying
+          // Chrome-grade precision we don't have.
+          label: 'Waiting (TTFB)',
+          hint: 'incl. queue, DNS, TLS',
+          value: timings.ttfb,
+          color: MacOSColors.warning,
+          span: span,
+        ),
+        _row(
+          label: 'Content download',
+          value: timings.download,
+          color: MacOSColors.success,
+          span: span,
+        ),
+      ],
+    );
+  }
+
+  Widget _row({
+    required String label,
+    required int value,
+    required Color color,
+    required int span,
+    String? hint,
+  }) {
+    // A floor so a 1ms phase is still a visible tick, and a ceiling because
+    // `total` and the phases are sampled at different points — ttfb can exceed
+    // the duration, which would push the bar past its track and over the label.
+    final fraction = (value / span).clamp(0.01, 1.0);
+    return Row(
+      // RN phaseRow: gap 14.
+      spacing: 14,
+      children: [
+        SizedBox(
+          // RN phaseLabelGroup: width 150.
+          width: 150,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: MacOSColors.textSecondary,
+                ),
+              ),
+              if (hint != null)
+                Text(
+                  hint,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: MacOSColors.textMuted,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 7,
+            decoration: BoxDecoration(
+              color: MacOSColors.backgroundHover,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: fraction,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          // RN phaseValue: width 72, right-aligned monospace.
+          width: 72,
+          child: Text(
+            formatDuration(value),
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 12,
+              fontFamily: 'monospace',
+              color: MacOSColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CollapsibleSection extends StatefulWidget {
   const _CollapsibleSection({
     required this.title,

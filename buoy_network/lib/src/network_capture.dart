@@ -4,8 +4,19 @@ import 'dart:io';
 import 'dart:typed_data' show BytesBuilder;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import 'package:buoy_core/buoy_core.dart';
+
+import 'overrides/override_rule.dart';
+import 'overrides/override_rules_store.dart';
+// Cyclic with this file (presets builds a draft from a NetworkCaptureEvent).
+// Dart resolves library cycles fine; the alternative is duplicating
+// `patternForUrl`, which is exactly the logic that must not drift.
+import 'overrides/presets.dart';
+import 'network_tool/saved/network_saved_store.dart';
+import 'overrides/resolve_override.dart';
+import 'overrides/synthetic_response.dart';
 
 /// Network capture for Dart/Flutter — the future buoy_network.
 ///
@@ -53,6 +64,30 @@ bool _isIgnoredUrl(String url) {
   return _ignoredUrlPatterns.any((pattern) => pattern.hasMatch(url));
 }
 
+/// Ports the RN `NetworkTimings` model.
+///
+/// Only TWO phases, on purpose. Queueing / DNS / TLS / request-send all happen
+/// below the Dart layer with nothing to read them from. The design this came
+/// from shows five, but derives the other three by multiplying the total by
+/// fixed fractions — i.e. they are invented. Two real ones are worth more than
+/// five where three are decoration.
+class NetworkTimings {
+  const NetworkTimings({required this.ttfb, required this.download});
+
+  /// Request start → response headers available.
+  ///
+  /// NOTE when labelling this in UI: measured from Dart, so it includes
+  /// everything before the headers land — queueing, DNS, TLS and sending the
+  /// request — not just the server's think time. Chrome can separate those; we
+  /// cannot, and implying otherwise would overstate the precision.
+  final int ttfb;
+
+  /// Response headers available → body fully read.
+  final int download;
+
+  Map<String, Object?> toJson() => {'ttfb': ttfb, 'download': download};
+}
+
 class NetworkCaptureEvent {
   NetworkCaptureEvent({
     required this.id,
@@ -81,6 +116,19 @@ class NetworkCaptureEvent {
   String? responseType;
   String? operationName;
   Map<String, Object?>? graphqlVariables;
+
+  /// Absent — not zeroed — when unmeasurable. See [NetworkTimings].
+  NetworkTimings? timings;
+
+  /// Milliseconds from request start to response headers, stamped the moment
+  /// they land. Kept separate from [timings] because the download half isn't
+  /// known until the body finishes.
+  int? ttfbMs;
+
+  /// Set when a response override produced this event instead of the network.
+  /// Mirrors RN's `NetworkEvent.override`; the list badges it and pins it into
+  /// the OVERRIDDEN section.
+  NetworkOverrideMark? override;
 
   Map<String, Object?> toJson({bool stripLargeBodies = false}) {
     final uri = Uri.tryParse(url);
@@ -114,6 +162,8 @@ class NetworkCaptureEvent {
       'requestClient': requestClient,
       if (operationName != null) 'operationName': operationName,
       if (graphqlVariables != null) 'graphqlVariables': graphqlVariables,
+      if (timings != null) 'timings': timings!.toJson(),
+      if (override != null) 'override': override!.toJson(),
     };
   }
 }
@@ -139,6 +189,16 @@ class NetworkEventStore {
     if (_events.length > _maxEvents) {
       _events.removeRange(_maxEvents, _events.length);
     }
+    notify();
+  }
+
+  /// A tracked event changed — refresh its pinned snapshot, then notify.
+  ///
+  /// RN calls `networkSavedStore.syncFromLive` from the same place. Pinning a
+  /// request that is still in flight would otherwise freeze it as "Pending"
+  /// forever. The no-op path (nothing pinned) is a single empty-Set check.
+  void update(NetworkCaptureEvent event) {
+    NetworkSavedStore.instance.syncFromLive(event);
     notify();
   }
 
@@ -178,25 +238,319 @@ class NetworkEventStore {
   }
 }
 
-/// The network tool's sync adapter — payload/version/actions match the RN
-/// networkSyncAdapter (protocol v2) so Buoy Desktop needs zero changes.
+/// Live store first, then the saved store — a pin may hold the only remaining
+/// copy of a request that has since been cleared or aged out.
+NetworkCaptureEvent? _resolveEvent(String id) =>
+    NetworkEventStore.instance.byId(id) ??
+    NetworkSavedStore.instance.getEventById(id);
+
+String? _readId(Object? params) =>
+    params is Map && params['id'] is String ? params['id'] as String : null;
+
+bool _readBool(Object? params, String key) =>
+    params is Map && params[key] == true;
+
+/// Turn a rule sent over the wire into one the store will accept.
+///
+/// Validated rather than trusted: these params arrive from the dashboard and
+/// from MCP clients, and a malformed rule doesn't just fail — it gets PERSISTED
+/// and re-applied to real traffic on every launch. Mirrors `readRuleDraft` in
+/// the RN adapter, including its two prefill sources.
+OverrideRule? _readRuleDraft(Object? params) {
+  if (params is! Map) return null;
+  final raw = params['rule'] is Map ? params['rule'] as Map : params;
+
+  final store = OverrideRulesStore.instance;
+  final id = raw['id'] is String ? raw['id'] as String : null;
+  final existing = id == null
+      ? null
+      : store.rules.where((rule) => rule.id == id).firstOrNull;
+
+  // `fromRequestId` builds the rule the way the UI's Override button does —
+  // notably running the URL through `patternForUrl`, which drops the query to
+  // `*`. Pasting an exact URL is the mistake that produces a rule sitting at 0
+  // hits against a cache-busting client.
+  OverrideRule? base;
+  final fromRequestId = params['fromRequestId'];
+  if (fromRequestId is String && fromRequestId.isNotEmpty) {
+    final event = NetworkEventStore.instance.byId(fromRequestId);
+    if (event == null) return null;
+    base = draftFromEvent(event);
+  }
+
+  var pattern = raw['urlPattern'] is String
+      ? (raw['urlPattern'] as String).trim()
+      : '';
+  if (pattern.isEmpty) pattern = base?.urlPattern ?? '';
+  if (pattern.isEmpty) return null;
+
+  // A remote surface editing a rule whose body was stripped from the snapshot
+  // has nothing to send back for it. Without this the save would write a null
+  // body and destroy the payload — the one field a rule exists for.
+  final bodyOmitted = raw['bodyOmitted'] == true;
+  final body = raw['body'] is String
+      ? raw['body'] as String
+      : (bodyOmitted ? existing?.body : base?.body);
+
+  return OverrideRule(
+    id: id ?? store.nextId(),
+    enabled: raw['enabled'] != false,
+    name: raw['name'] is String ? raw['name'] as String : base?.name,
+    urlPattern: pattern,
+    methods: raw['methods'] is List
+        ? [
+            for (final m in raw['methods'] as List)
+              if (m is String) m.toUpperCase(),
+          ]
+        : base?.methods,
+    kind: raw['kind'] is String
+        ? OverrideRuleKind.fromJson(raw['kind'])
+        : (base?.kind ?? OverrideRuleKind.respond),
+    status: raw['status'] is num
+        ? (raw['status'] as num).toInt()
+        : base?.status,
+    statusText: raw['statusText'] is String
+        ? raw['statusText'] as String
+        : base?.statusText,
+    headers: raw['headers'] is Map
+        ? {
+            for (final e in (raw['headers'] as Map).entries)
+              e.key.toString(): '${e.value}',
+          }
+        : base?.headers,
+    // Objects are accepted and serialized so a caller can send JSON directly
+    // instead of pre-stringifying it, which is the mistake everyone makes once.
+    body: body ??
+        (raw['body'] != null
+            ? const JsonEncoder.withIndent('  ').convert(raw['body'])
+            : null),
+    failKind: raw['failKind'] == null
+        ? null
+        : OverrideFailKind.fromJson(raw['failKind']),
+    delayMs: raw['delayMs'] is num ? (raw['delayMs'] as num).toInt() : null,
+    times: raw['times'] is num ? (raw['times'] as num).toInt() : null,
+    alternate: raw['alternate'] == true,
+    createdAt:
+        existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+  );
+}
+
+/// The network tool's sync adapter — payload/version/action names match the RN
+/// `networkSyncAdapter` so Buoy Desktop and the MCP server need zero changes.
+///
+/// v4: the payload is an OBJECT — `{events, saved, overrides}`, matching RN
+/// field for field. Pins can't ride as flags on the events: a pin outlives the
+/// event that produced it (that is its whole purpose), so it has to be its own
+/// list.
 final networkSyncAdapter = ToolSyncAdapter(
-  version: 2,
-  getSnapshot: () => NetworkEventStore.instance.snapshot(),
-  subscribe: (onChange) => NetworkEventStore.instance.subscribe(onChange),
+  version: 4,
+  getSnapshot: () => {
+    'events': NetworkEventStore.instance.snapshot(),
+    // Saved snapshots ride on EVERY snapshot, so they go through the same body
+    // strip as events — a fat pin would otherwise land in the same 200ms loop
+    // that the stripping exists to protect.
+    'saved': [
+      for (final record in NetworkSavedStore.instance.records)
+        {
+          ...record.toJson(),
+          'event': record.event.toJson(stripLargeBodies: true),
+        },
+    ],
+    // Rules live on the DEVICE — that's the only place they can run, since a
+    // rule is applied inside the app's own HttpClient. Remote surfaces mirror
+    // this and forward their edits back as actions.
+    'overrides': OverrideRulesStore.instance.snapshotState(
+      snapshotBodyInlineLimit,
+    ),
+  },
+  subscribe: (onChange) {
+    final unsubscribeEvents = NetworkEventStore.instance.subscribe(onChange);
+    // Pinning with no traffic in flight still has to reach the dashboard, and
+    // so does editing a rule — both stores drive the snapshot.
+    final unsubscribeSaved = NetworkSavedStore.instance.subscribe(onChange);
+    final unsubscribeRules = OverrideRulesStore.instance.subscribe(onChange);
+    return () {
+      unsubscribeEvents();
+      unsubscribeSaved();
+      unsubscribeRules();
+    };
+  },
   actions: {
     'clearEvents': (_) {
       NetworkEventStore.instance.clear();
       return null;
     },
     'getEventBody': (params) {
-      final id = params is Map ? params['id'] as String? : null;
+      final id = _readId(params);
       if (id == null) return null;
-      final event = NetworkEventStore.instance.byId(id);
+      final event = _resolveEvent(id);
       if (event == null) return null;
       return {
         'requestData': event.requestData,
         'responseData': event.responseData,
+      };
+    },
+
+    // ── Pinned + saved ───────────────────────────────────────────────────────
+
+    /// Pin/unpin a request from the dashboard.
+    'setPinned': (params) {
+      final id = _readId(params);
+      if (id == null) return null;
+      final event = _resolveEvent(id);
+      if (event == null) return null;
+      final wanted = _readBool(params, 'pinned');
+      // `flagsForEventId`, not `isPinned` — the id may be a `saved:<key>`
+      // snapshot, which the live-id Sets deliberately don't carry.
+      final current = flagsForEventId(
+        NetworkSavedStore.instance.state,
+        id,
+      ).pinned;
+      if (current == wanted) return {'ok': true};
+      final result = NetworkSavedStore.instance.togglePin(event);
+      return {'ok': result.succeeded, 'active': result.active};
+    },
+
+    /// Save/unsave a request from the dashboard.
+    'setSaved': (params) {
+      final id = _readId(params);
+      if (id == null) return null;
+      final event = _resolveEvent(id);
+      if (event == null) return null;
+      final wanted = _readBool(params, 'saved');
+      final current = flagsForEventId(
+        NetworkSavedStore.instance.state,
+        id,
+      ).saved;
+      if (current == wanted) return {'ok': true};
+      final result = NetworkSavedStore.instance.toggleSave(event);
+      return {'ok': result.succeeded, 'active': result.active};
+    },
+
+    /// Drop one pinned/saved record by its stable key.
+    'removeSavedRecord': (params) {
+      final key = params is Map && params['key'] is String
+          ? params['key'] as String
+          : null;
+      if (key == null) return null;
+      NetworkSavedStore.instance.remove(key);
+      return {'ok': true};
+    },
+
+    'clearSavedRequests': (_) {
+      NetworkSavedStore.instance.clearSaved();
+      return {'ok': true};
+    },
+
+    'clearPinnedRequests': (_) {
+      NetworkSavedStore.instance.clearPinned();
+      return {'ok': true};
+    },
+
+    // ── Response overrides ───────────────────────────────────────────────────
+
+    /// Master switch — turns every rule off without losing any of them.
+    'setOverridesEnabled': (params) {
+      OverrideRulesStore.instance.setEnabled(_readBool(params, 'enabled'));
+      return {'ok': true, 'enabled': OverrideRulesStore.instance.enabled};
+    },
+
+    /// Create a rule, or replace one by id.
+    'upsertOverrideRule': (params) {
+      final draft = _readRuleDraft(params);
+      if (draft == null) {
+        final wanted = params is Map ? params['fromRequestId'] : null;
+        return {
+          'ok': false,
+          'error': wanted is String
+              ? 'No captured request `$wanted` — it may have been cleared. '
+                    'Send a urlPattern instead.'
+              : 'A rule needs a non-empty urlPattern.',
+        };
+      }
+      final rule = OverrideRulesStore.instance.upsertRule(draft);
+      if (rule == null) {
+        return {'ok': false, 'error': 'Override rule limit reached.'};
+      }
+      // A rule pushed from a remote surface is meant to take effect now;
+      // leaving it dark under an OFF master switch reads as a silent failure.
+      if (rule.enabled) OverrideRulesStore.instance.setEnabled(true);
+      // A RECEIPT, not the rule: `fromRequestId` seeds the real response as the
+      // body, so echoing the whole rule would send hundreds of KB back down the
+      // socket for something no caller reads.
+      return {
+        'ok': true,
+        'rule': {
+          'id': rule.id,
+          'urlPattern': rule.urlPattern,
+          'enabled': rule.enabled,
+          'kind': rule.kind.wireName,
+          'status': rule.status,
+          'bodySize': rule.body?.length ?? 0,
+        },
+      };
+    },
+
+    'setOverrideRuleEnabled': (params) {
+      final id = _readId(params);
+      if (id == null) return {'ok': false, 'error': 'Missing rule id.'};
+      OverrideRulesStore.instance.setRuleEnabled(
+        id,
+        _readBool(params, 'enabled'),
+      );
+      return {'ok': true};
+    },
+
+    'deleteOverrideRule': (params) {
+      final id = _readId(params);
+      if (id == null) return {'ok': false, 'error': 'Missing rule id.'};
+      OverrideRulesStore.instance.removeRule(id);
+      return {'ok': true};
+    },
+
+    'clearOverrideRules': (_) {
+      OverrideRulesStore.instance.clearRules();
+      return {'ok': true};
+    },
+
+    /// Read the rules back — hit counts included, which the snapshot coalesces.
+    'listOverrideRules': (_) => OverrideRulesStore.instance.state,
+
+    /// The full body of one rule, for the surfaces the snapshot withheld it
+    /// from. Fetched when the user opens the rule, the only moment it's needed.
+    'getOverrideRuleBody': (params) {
+      final id = _readId(params);
+      if (id == null) return null;
+      final rule = OverrideRulesStore.instance.rules
+          .where((candidate) => candidate.id == id)
+          .firstOrNull;
+      if (rule == null) return null;
+      return {'body': rule.body};
+    },
+
+    /// Why isn't my rule firing? Reports the engine's own view of the world.
+    'debugOverrides': (params) {
+      final url =
+          (params is Map && params['url'] is String
+              ? params['url'] as String
+              : null) ??
+          'https://example.com/';
+      final store = OverrideRulesStore.instance;
+      return {
+        'interceptorInstalled': HttpOverrides.current is BuoyHttpOverrides,
+        'listenerCount': NetworkEventStore.instance.capturing ? 1 : 0,
+        'engine': {
+          'hooksInstalled': true,
+          'devFlag': kDebugMode,
+          'ruleCount': store.activeRules.length,
+          'matches':
+              findMatchingRule(url, 'GET', store.activeRules) != null,
+        },
+        'store': {
+          'enabled': store.enabled,
+          'ruleCount': store.rules.length,
+          'rulesVisibleToEngine': store.activeRules.length,
+        },
       };
     },
   },
@@ -245,10 +599,134 @@ class _CapturingHttpClient implements HttpClient {
   _CapturingHttpClient(this._inner);
   final HttpClient _inner;
 
+  /// The one place a response override is decided.
+  ///
+  /// Resolved here, at connect time, rather than at `close()` — see
+  /// `overrides/synthetic_response.dart` for the dio evidence. In short: dio
+  /// only maps a `SocketException` to `connectionError`/`connectionTimeout`
+  /// when it comes out of `openUrl`, which is also where a REAL offline failure
+  /// surfaces. Raised from `close()` the same exception would arrive as
+  /// `DioExceptionType.unknown` and no app's error handling would recognise it.
+  OverrideOutcome? _resolveOutcome(String method, Uri url) {
+    // A shipped app synthesizing 500s would be catastrophic. Same gate as RN's
+    // `__DEV__` check, and the port briefing's rule 3.
+    if (!kDebugMode) return null;
+    final store = OverrideRulesStore.instance;
+    final rules = store.activeRules;
+    if (rules.isEmpty) return null;
+
+    final href = url.toString();
+    // Broker traffic and app-registered noise are off limits for the same
+    // reason they're never captured — and this is what keeps a `*` catch-all
+    // from severing Buoy's own socket.
+    if (_isIgnoredUrl(href)) return null;
+
+    final rule = findMatchingRule(href, method, rules);
+    if (rule == null) return null;
+
+    // The match is recorded even when the rule declines to apply: `alternate`
+    // advances its phase on the requests it deliberately lets through.
+    final applies = shouldApply(rule);
+    store.recordMatch(rule.id);
+    if (!applies) return null;
+    store.recordHit(rule.id);
+    return toOutcome(rule);
+  }
+
   @override
   Future<HttpClientRequest> openUrl(String method, Uri url) async {
+    final outcome = _resolveOutcome(method, url);
+
+    if (outcome is FailOutcome) {
+      // Recorded before the throw so the tool shows the request that failed.
+      // Headers are absent by necessity, not oversight: callers set them on the
+      // returned request, and there is no returned request — exactly the state
+      // a real connection failure leaves behind.
+      final event = NetworkCaptureEvent(
+        id: NetworkEventStore.instance.nextId(),
+        method: method,
+        url: url.toString(),
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        requestClient: 'http',
+      )
+        ..override = NetworkOverrideMark.forOutcome(outcome)
+        ..error = outcome.failKind == OverrideFailKind.timeout
+            ? 'Network request timed out'
+            : 'Network request failed'
+        ..duration = outcome.delayMs;
+      NetworkEventStore.instance.add(event);
+
+      if (outcome.delayMs > 0) {
+        await Future<void>.delayed(Duration(milliseconds: outcome.delayMs));
+      }
+      throw failException(outcome, url);
+    }
+
+    if (outcome is RespondOutcome) {
+      // Never touches `_inner`, so an overridden request opens no socket at
+      // all — matching RN, where the override path never calls the original
+      // `send`.
+      return SyntheticHttpClientRequest(
+        method: method,
+        uri: url,
+        outcome: outcome,
+        onBody: (body, headers) async =>
+            _recordSynthetic(method, url, outcome, body, headers),
+      );
+    }
+
     final request = await _inner.openUrl(method, url);
-    return _CapturingRequest(request);
+    return _CapturingRequest(
+      request,
+      // `delay` alone lets the real request run, just late. The wait happens in
+      // `close()`, which is the span dio measures with `receiveTimeout` — so a
+      // long delay produces a receive timeout, the way a slow server would,
+      // rather than a connect timeout.
+      delayMs: outcome is DelayOutcome ? outcome.delayMs : 0,
+      overrideMark: outcome == null
+          ? null
+          : NetworkOverrideMark.forOutcome(outcome),
+    );
+  }
+
+  /// Record the event for a synthesized response, completed in one step —
+  /// there is no network round trip to wait for.
+  void _recordSynthetic(
+    String method,
+    Uri url,
+    RespondOutcome outcome,
+    List<int> body,
+    HttpHeaders headers,
+  ) {
+    final store = NetworkEventStore.instance;
+    final requestHeaders = <String, String>{};
+    headers.forEach((name, values) => requestHeaders[name] = values.join(', '));
+
+    final event = NetworkCaptureEvent(
+      id: store.nextId(),
+      method: method,
+      url: url.toString(),
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+      requestClient: requestHeaders['x-request-client'] ??
+          requestHeaders[_attributionHeader] ??
+          'http',
+      requestHeaders: requestHeaders..remove(_attributionHeader),
+    )
+      ..override = NetworkOverrideMark.forOutcome(outcome)
+      ..status = outcome.status
+      ..statusText = outcome.statusText
+      ..responseHeaders = outcome.headers
+      ..responseType = outcome.headers['content-type']
+      ..duration = outcome.delayMs;
+
+    if (body.isNotEmpty) {
+      event.requestSize = body.length;
+      event.requestData = _decodeBody(body, requestHeaders['content-type']);
+    }
+    final bytes = utf8.encode(outcome.body);
+    event.responseSize = bytes.length;
+    event.responseData = _decodeBody(bytes, outcome.headers['content-type']);
+    store.add(event);
   }
 
   @override
@@ -355,11 +833,17 @@ class _CapturingHttpClient implements HttpClient {
 }
 
 class _CapturingRequest implements HttpClientRequest {
-  _CapturingRequest(this._inner)
+  _CapturingRequest(this._inner, {this.delayMs = 0, this.overrideMark})
     : _startMs = DateTime.now().millisecondsSinceEpoch;
 
   final HttpClientRequest _inner;
   final int _startMs;
+
+  /// Latency injected by a `delay` rule, awaited in [close].
+  final int delayMs;
+
+  /// Marks the event when a `delay` rule produced this request.
+  final NetworkOverrideMark? overrideMark;
   final BytesBuilder _requestBody = BytesBuilder(copy: false);
   bool _built = false;
   NetworkCaptureEvent? _event;
@@ -427,6 +911,7 @@ class _CapturingRequest implements HttpClientRequest {
       );
     }
     if (client == 'graphql') _extractGraphQL(event);
+    event.override = overrideMark;
     store.add(event);
     _event = event;
     return event;
@@ -456,6 +941,13 @@ class _CapturingRequest implements HttpClientRequest {
   Future<HttpClientResponse> close() async {
     final event = _ensureEvent();
     try {
+      // Injected latency lands here rather than at connect time: this is the
+      // span dio measures with `receiveTimeout`, so "delay 10s" against a 5s
+      // receiveTimeout correctly produces a receive timeout — a slow server,
+      // not a slow connection.
+      if (delayMs > 0) {
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      }
       final response = await _inner.close();
       if (event == null) return response;
       return _finishWithResponse(event, response);
@@ -463,7 +955,7 @@ class _CapturingRequest implements HttpClientRequest {
       if (event != null) {
         event.error = error.toString();
         event.duration = DateTime.now().millisecondsSinceEpoch - _startMs;
-        NetworkEventStore.instance.notify();
+        NetworkEventStore.instance.update(event);
       }
       rethrow;
     }
@@ -481,6 +973,9 @@ class _CapturingRequest implements HttpClientRequest {
     NetworkCaptureEvent event,
     HttpClientResponse response,
   ) {
+    // Headers are here — that's the TTFB boundary. The download half is
+    // filled in when the body finishes; see the response stream's onDone.
+    event.ttfbMs = DateTime.now().millisecondsSinceEpoch - _startMs;
     event.status = response.statusCode;
     event.statusText = response.reasonPhrase;
     final headers = <String, String>{};
@@ -490,7 +985,7 @@ class _CapturingRequest implements HttpClientRequest {
     event.responseHeaders = headers;
     // Full header value, matching the RN store (not just the mime type).
     event.responseType = response.headers.value('content-type');
-    NetworkEventStore.instance.notify();
+    NetworkEventStore.instance.update(event);
     return _CapturingResponse(response, event, _startMs);
   }
 
@@ -604,7 +1099,7 @@ class _CapturingResponse extends Stream<List<int>>
         if (!_streamingMarked && _isEventStream) {
           _streamingMarked = true;
           _event.responseData = '[streaming response — body updates omitted]';
-          NetworkEventStore.instance.notify();
+          NetworkEventStore.instance.update(_event);
         }
         _event.responseSize = _totalBytes;
         onData?.call(chunk);
@@ -612,7 +1107,7 @@ class _CapturingResponse extends Stream<List<int>>
       onError: (Object error, StackTrace stackTrace) {
         _event.error = error.toString();
         _event.duration = DateTime.now().millisecondsSinceEpoch - _startMs;
-        NetworkEventStore.instance.notify();
+        NetworkEventStore.instance.update(_event);
         if (onError is void Function(Object, StackTrace)) {
           onError(error, stackTrace);
         } else if (onError is void Function(Object)) {
@@ -632,8 +1127,18 @@ class _CapturingResponse extends Stream<List<int>>
               '${_event.responseData}'
               '\n[truncated: captured ${bytes.length} of $_totalBytes bytes]';
         }
-        _event.duration = DateTime.now().millisecondsSinceEpoch - _startMs;
-        NetworkEventStore.instance.notify();
+        final duration = DateTime.now().millisecondsSinceEpoch - _startMs;
+        _event.duration = duration;
+        final ttfb = _event.ttfbMs;
+        if (ttfb != null) {
+          _event.timings = NetworkTimings(
+            ttfb: ttfb,
+            // Clamped: the two are sampled at different points, so a
+            // sub-millisecond body can read as negative.
+            download: duration - ttfb < 0 ? 0 : duration - ttfb,
+          );
+        }
+        NetworkEventStore.instance.update(_event);
         onDone?.call();
       },
       cancelOnError: cancelOnError,

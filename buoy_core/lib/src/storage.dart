@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/constants.dart';
+import 'core/dial_usage.dart';
 
 /// Persisted tool-visibility preferences — the Dart mirror of the RN
 /// `DevToolsSettings` blob (same JSON shape, same storage key, so a future
@@ -64,7 +65,93 @@ class BuoyDevToolsSettings {
 /// as the RN package. Position writes are debounced (500 ms, RN parity) so
 /// drag/animation streams don't hammer the platform channel.
 class BuoyStorage {
+  BuoyStorage() {
+    // Kick off the usage load eagerly (RN loads on module import) so
+    // rankDialToolIds can usually run synchronously by the time the dial
+    // opens.
+    loadDialUsage();
+  }
+
   Timer? _positionSaveTimer;
+
+  // Dial usage — the Dart mirror of RN's `dialUsageStore.ts`: a persisted,
+  // in-memory cache over the pure scoring logic in core/dial_usage.dart.
+  Map<String, UsageEntry> _dialUsage = {};
+  bool _dialUsageLoaded = false;
+  Future<void>? _dialUsageLoad;
+
+  /// Load persisted usage data into the in-memory cache. Safe to call
+  /// multiple times — the underlying read happens only once.
+  Future<void> loadDialUsage() {
+    return _dialUsageLoad ??= () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(BuoyStorageKeys.dialUsage);
+        if (raw != null) {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map) {
+            final parsed = <String, UsageEntry>{};
+            for (final entry in decoded.entries) {
+              final usage = UsageEntry.fromJson(entry.value);
+              if (usage != null) parsed[entry.key.toString()] = usage;
+            }
+            _dialUsage = parsed;
+          }
+        }
+      } catch (_) {
+        // Ignore — start with an empty usage map.
+      } finally {
+        _dialUsageLoaded = true;
+      }
+    }();
+  }
+
+  /// Whether the usage cache has finished loading from storage.
+  bool get isDialUsageLoaded => _dialUsageLoaded;
+
+  /// Rank tool ids by recency-weighted usage, highest first. Synchronous —
+  /// operates against the in-memory cache. Never-used tools keep their
+  /// original order as a tie-breaker.
+  List<String> rankDialToolIds(List<String> orderedIds) {
+    return rankToolIds(
+      orderedIds,
+      _dialUsage,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Record a single press of a tool and persist the updated usage map.
+  Future<void> recordDialToolUsage(String id) async {
+    if (id.isEmpty) return;
+    if (!_dialUsageLoaded) await loadDialUsage();
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _dialUsage = pruneUsage(recordUsage(_dialUsage, id, now), now);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        BuoyStorageKeys.dialUsage,
+        jsonEncode({
+          for (final entry in _dialUsage.entries)
+            entry.key: entry.value.toJson(),
+        }),
+      );
+    } catch (_) {
+      // Ignore persistence failure — the in-memory cache is still updated.
+    }
+  }
+
+  /// Clear all usage data (in-memory and persisted).
+  Future<void> resetDialUsage() async {
+    _dialUsage = {};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(BuoyStorageKeys.dialUsage);
+    } catch (_) {
+      // Ignore — the in-memory cache is already cleared.
+    }
+  }
 
   Future<({double x, double y})?> loadBubblePosition() async {
     final prefs = await SharedPreferences.getInstance();

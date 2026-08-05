@@ -7,10 +7,16 @@ class TouchableOpacity extends StatefulWidget {
     super.key,
     required this.onTap,
     required this.child,
+    this.onLongPress,
     this.activeOpacity = 0.2,
   });
 
   final VoidCallback? onTap;
+
+  /// RN's `onLongPress`. Kept on the same widget rather than wrapping in
+  /// another GestureDetector so the press-dim and the long-press belong to one
+  /// recognizer and can't fight each other in the gesture arena.
+  final VoidCallback? onLongPress;
   final Widget child;
 
   /// RN TouchableOpacity default is 0.2.
@@ -34,12 +40,15 @@ class _TouchableOpacityState extends State<TouchableOpacity> {
     // competing recognizers around (header drag/tap), is only at finger-up,
     // so the dim would never render.
     return Listener(
-      onPointerDown: widget.onTap == null ? null : (_) => _setPressed(true),
+      onPointerDown: widget.onTap == null && widget.onLongPress == null
+          ? null
+          : (_) => _setPressed(true),
       onPointerUp: (_) => _setPressed(false),
       onPointerCancel: (_) => _setPressed(false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         child: AnimatedOpacity(
           opacity: _pressed ? widget.activeOpacity : 1,
           // Instant dim on press, quick fade back on release (RN feel).

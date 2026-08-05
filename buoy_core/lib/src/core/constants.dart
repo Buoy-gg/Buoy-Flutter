@@ -31,6 +31,7 @@ class BuoyStorageKeys {
   static const bubblePositionX = '@react_buoy_bubble_position_x';
   static const bubblePositionY = '@react_buoy_bubble_position_y';
   static const dialIsOpen = '@react_buoy_dial_is_open';
+  static const dialUsage = '@react_buoy_dial_usage';
   static const settingsModalOpen = '@react_buoy_settings_modal_open';
   static const settingsActiveTab = '@react_buoy_settings_active_tab';
   static const devToolsSettings = '@react_buoy_dev_tools_settings';

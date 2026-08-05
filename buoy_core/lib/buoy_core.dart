@@ -13,6 +13,7 @@ export 'src/ui/buoy_devtools.dart';
 export 'src/ui/buoy_theme.dart';
 export 'src/ui/modal/js_modal.dart';
 export 'src/ui/modal/modal_settings.dart';
+export 'src/ui/modal/modal_visibility.dart';
 export 'src/ui/overlay_host.dart';
 export 'src/ui/touchable_opacity.dart';
 

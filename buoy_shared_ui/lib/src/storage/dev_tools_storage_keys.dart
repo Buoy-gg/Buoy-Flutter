@@ -101,6 +101,15 @@ class NetworkKeys {
   String ignoredUrls() => '${root()}_ignored_urls';
   String preferences() => '${root()}_preferences';
   String copyOptions() => '${root()}_copy_options';
+
+  /// Pinned + saved request snapshots. Same key as RN's
+  /// `devToolsStorageKeys.network.saved()`.
+  String saved() => '${root()}_saved';
+
+  /// Response-override rules. Same key as RN's
+  /// `devToolsStorageKeys.network.overrides()`, so the persisted blob is
+  /// interchangeable between the two runtimes.
+  String overrides() => '${root()}_overrides';
 }
 
 class RouteEventsKeys {

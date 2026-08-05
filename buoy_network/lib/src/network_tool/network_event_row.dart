@@ -11,10 +11,27 @@ import 'network_filter.dart';
 /// status/client badges pinned top-right; duration + relative time pinned
 /// bottom-right.
 class NetworkEventRow extends StatelessWidget {
-  const NetworkEventRow({super.key, required this.event, required this.onTap});
+  const NetworkEventRow({
+    super.key,
+    required this.event,
+    required this.onTap,
+    this.onLongPress,
+    this.pinned = false,
+    this.saved = false,
+  });
 
   final NetworkCaptureEvent event;
   final ValueChanged<NetworkCaptureEvent> onTap;
+
+  /// Long-press pins on the live list and UNSAVES on the Saved screen — each
+  /// list affords the action that makes sense in it.
+  final ValueChanged<NetworkCaptureEvent>? onLongPress;
+
+  /// Pinned/saved markers. Deliberately GLYPHS, not buttons: this row renders
+  /// hundreds of times, and a tappable target here would compete with the row
+  /// itself. The toggles live in the detail header.
+  final bool pinned;
+  final bool saved;
 
   static Color statusColor(int? status, String? error) {
     if (error != null) return MacOSColors.error;
@@ -74,6 +91,7 @@ class NetworkEventRow extends StatelessWidget {
       marginHorizontal: 8,
       borderLeftColor: color,
       onTap: () => onTap(event),
+      onLongPress: onLongPress == null ? null : () => onLongPress!(event),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -134,6 +152,28 @@ class NetworkEventRow extends StatelessWidget {
             child: Row(
               spacing: 4,
               children: [
+                // The forged-response mark, immediately left of the status it
+                // is responsible for. Without it a 500 you invented is
+                // indistinguishable from a 500 your backend returned — which is
+                // the whole hazard of this feature.
+                if (event.override != null)
+                  const BuoyGlyph(
+                    BuoyIcons.flaskConical,
+                    size: 12,
+                    color: MacOSColors.warning,
+                  ),
+                if (pinned)
+                  const BuoyGlyph(
+                    BuoyIcons.pin,
+                    size: 12,
+                    color: MacOSColors.info,
+                  ),
+                if (saved)
+                  const BuoyGlyph(
+                    BuoyIcons.bookmark,
+                    size: 12,
+                    color: MacOSColors.debug,
+                  ),
                 StatusIndicator(
                   status: event.status,
                   error: event.error,

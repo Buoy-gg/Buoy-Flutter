@@ -80,6 +80,8 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
       widget.onFilterChange(
         filter.copyWith(methods: updated.isEmpty ? null : updated),
       );
+    } else if (group == 'noise') {
+      widget.onFilterChange(filter.copyWith(hideImages: !filter.hideImages));
     } else if (group == 'contentType') {
       final type = value as String;
       final current = filter.contentTypes ?? const [];
@@ -121,6 +123,13 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
             '${uri.hasPort ? ':${uri.port}' : ''}${uri.path}');
       }
     }
+    // From the store, NOT from `events`: this screen is handed the ALREADY
+    // filtered list, so with the image filter on (its default) counting there
+    // always yields 0 — a switch that reports "0" is a switch nobody believes.
+    final imageCount = applyIgnoredPatterns(
+      NetworkEventStore.instance.events,
+      IgnoredPatternsStore.instance.patterns,
+    ).where(isImageEvent).length;
     final sortedDomains = domains.toList()..sort();
     final sortedUrls = urls.toList()..sort();
     final suggestions = [
@@ -186,6 +195,25 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                         ? filter.status == null
                         : filter.status == value,
                   ),
+              ],
+            ),
+            // Its own section rather than a Content-Type chip: content types
+            // are a "show only these" picker, and this is a "hide these"
+            // switch that is already on. Mixing the two in one row would make
+            // an on-by-default chip look like an active selection.
+            FilterSectionConfig(
+              id: 'noise',
+              title: 'Noise',
+              options: [
+                FilterOption(
+                  id: 'noise::images',
+                  label: 'Hide images',
+                  count: imageCount,
+                  icon: BuoyIcons.image,
+                  color: MacOSColors.textMuted,
+                  value: 'images',
+                  isActive: filter.hideImages,
+                ),
               ],
             ),
             if (methodCounts.isNotEmpty)

@@ -1,3 +1,12 @@
+## 0.3.1
+
+- Dial menu now ranks tools by recency-weighted usage (`dial_usage.dart`,
+  ported from RN's `dialUsage.ts` — ~3-day half-life decay).
+- Modal visibility plumbing (`modal_visibility.dart`) so tools can react to
+  their modal being shown/hidden.
+- Regenerated icon set with new `bookmark` and `flask-conical` glyphs
+  (network saved requests + override rules).
+
 ## 0.3.0
 
 - Added `BuoyOverlayHost`: a shared overlay layer that tool packages draw HUDs and

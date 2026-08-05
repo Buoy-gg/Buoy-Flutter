@@ -26,6 +26,11 @@ class BuoyIcons {
   BuoyIcons._();
 
   static const LucideIcon filter = filterGlyph;
+
+  /// The response-overrides mark. RN uses lucide's `FlaskConical` (a
+  /// hand-written component in shared/src/icons); this is the same shape
+  /// authored once in the BIF set so both frameworks draw it identically.
+  static const LucideIcon flaskConical = flaskConicalGlyph;
   static const LucideIcon zap = zapGlyph;
   static const LucideIcon x = xGlyph;
   static const LucideIcon trash2 = trash2Glyph;
@@ -85,6 +90,10 @@ class BuoyIcons {
 
   static const LucideIcon code = codeGlyph;
   static const LucideIcon pin = pinGlyph;
+
+  /// The saved-requests mark. RN uses lucide's `Bookmark`; authored once in
+  /// the BIF set so both frameworks draw the same shape.
+  static const LucideIcon bookmark = bookmarkGlyph;
   static const LucideIcon navigation = navigationGlyph;
   static const LucideIcon imageOff = imageOffGlyph;
   static const LucideIcon gitBranch = gitBranchGlyph;

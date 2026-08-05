@@ -10,6 +10,7 @@ import 'buoy_theme.dart';
 import 'dial/dial_overlay.dart';
 import 'floating_bubble.dart';
 import 'modal/modal_settings.dart';
+import 'modal/modal_visibility.dart';
 import 'overlay_host.dart';
 import 'touchable_opacity.dart';
 
@@ -58,7 +59,13 @@ class BuoyDevTools extends StatefulWidget {
 class _BuoyDevToolsState extends State<BuoyDevTools> {
   final _storage = BuoyStorage();
   bool _dialVisible = false;
-  BuoyTool? _openTool;
+
+  /// Open tools in z-order (RN AppHost `openApps`): later = on top. Minimized
+  /// tools STAY in the list and stay mounted (hidden via [BuoyModalVisibility])
+  /// so their UI state survives — the single source of truth for both the
+  /// modal stack and the minimized dock. Singleton per tool id.
+  final List<_OpenApp> _openApps = [];
+  int _nextDockSeq = 0;
   VoidCallback? _removeRegistryListener;
 
   /// Hosts every Buoy layer inside our own [Overlay] (see [build]). Created once
@@ -83,9 +90,25 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
     ];
   }
 
-  /// Tools minimized out of their modal, docked as restorable icons. Singleton
-  /// per tool id (RN MinimizedToolsContext.minimize dedupes by id).
-  final List<BuoyTool> _minimized = [];
+  /// Any tool visible on screen (RN `isAnyOpen` — minimized tools excluded).
+  bool get _anyVisibleOpen => _openApps.any((a) => !a.minimized);
+
+  /// Dock icons for minimized tools, in minimize order (RN appends to its
+  /// tray). Derived from [_openApps] — no second store like RN's
+  /// MinimizedToolsContext, whose id/instanceId reconciliation is a known
+  /// source of orphan-icon bugs.
+  List<BuoyTool> get _minimizedTools {
+    final docked = _openApps.where((a) => a.minimized).toList()
+      ..sort((a, b) => (a.dockSeq ?? 0).compareTo(b.dockSeq ?? 0));
+    return [for (final a in docked) a.tool];
+  }
+
+  _OpenApp? _openAppById(String id) {
+    for (final app in _openApps) {
+      if (app.tool.id == id) return app;
+    }
+    return null;
+  }
 
   /// Guards open-apps persistence until the boot-time restore has run, so an
   /// early write can't clobber the saved state with an empty list.
@@ -112,35 +135,32 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   }
 
   /// Re-open the tools that were open at last close (RN AppHost restore).
-  /// Per-tool size/mode/position rides on each JsModal's own persistence, so
-  /// re-mounting the modal restores its geometry.
+  /// Saved array order is stack order, so appending in sequence restores the
+  /// z-order. Per-tool size/mode/position rides on each JsModal's own
+  /// persistence, so re-mounting the modal restores its geometry.
   Future<void> _restoreOpenApps() async {
     final saved = await _storage.loadOpenApps();
     if (!mounted) return;
-    BuoyTool? openTool;
-    final minimized = <BuoyTool>[];
-    for (final entry in saved) {
-      final tool = _toolById(entry.id);
-      // Only modal/screen tools have a surface to reopen or minimize.
-      if (tool == null ||
-          (tool.modalBuilder == null && tool.screenBuilder == null)) {
-        continue;
-      }
-      if (entry.minimized) {
-        minimized
-          ..removeWhere((t) => t.id == tool.id)
-          ..add(tool);
-      } else {
-        openTool = tool; // one open tool at a time — last wins
-      }
-    }
     setState(() {
-      _appsRestored = true;
-      // Don't clobber anything the user already opened during the async load.
-      if (_openTool == null && _minimized.isEmpty) {
-        _minimized.addAll(minimized);
-        _openTool = openTool;
+      for (final entry in saved) {
+        final tool = _toolById(entry.id);
+        // Only modal/screen tools have a surface to reopen or minimize; skip
+        // anything the user already opened during the async load (RN gets
+        // this for free via singleton open()).
+        if (tool == null ||
+            (tool.modalBuilder == null && tool.screenBuilder == null) ||
+            _openAppById(tool.id) != null) {
+          continue;
+        }
+        _openApps.add(
+          _OpenApp(
+            tool,
+            minimized: entry.minimized,
+            dockSeq: entry.minimized ? _nextDockSeq++ : null,
+          ),
+        );
       }
+      _appsRestored = true;
     });
   }
 
@@ -152,11 +172,12 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   }
 
   /// Persist which tools are open / minimized (RN `@react_buoy_open_apps`).
+  /// True stack order — RN persists the array as-is so z-order survives a
+  /// restart.
   void _persistOpenApps() {
     if (!_appsRestored) return;
     _storage.saveOpenApps([
-      for (final tool in _minimized) (id: tool.id, minimized: true),
-      if (_openTool != null) (id: _openTool!.id, minimized: false),
+      for (final app in _openApps) (id: app.tool.id, minimized: app.minimized),
     ]);
   }
 
@@ -175,43 +196,62 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
     _storage.saveDialOpen(false);
   }
 
+  /// Launch = RN `resolveOpenAppsState` with singleton semantics: relaunching
+  /// an already-open tool moves its existing record to the end of the list
+  /// (bring-to-front) and un-minimizes it — same record, same key, so the
+  /// mounted subtree is reused, not remounted. Otherwise append on top.
   void _launchTool(BuoyTool tool) {
     final onPressed = tool.onPressed;
     if (onPressed != null) {
       onPressed(context);
       return;
     }
-    if (tool.modalBuilder != null || tool.screenBuilder != null) {
-      setState(() {
-        _minimized.removeWhere((t) => t.id == tool.id);
-        _openTool = tool;
-      });
-      _persistOpenApps();
-    }
-  }
-
-  void _closeTool() {
-    setState(() => _openTool = null);
-    _persistOpenApps();
-  }
-
-  /// Minimize the open modal-tool: hide it, dock a restorable icon. Its JsModal
-  /// has already flushed geometry to persistence, so reopening restores it.
-  void _minimizeTool() {
-    final tool = _openTool;
-    if (tool == null) return;
+    if (tool.modalBuilder == null && tool.screenBuilder == null) return;
     setState(() {
-      _openTool = null;
-      _minimized.removeWhere((t) => t.id == tool.id);
-      _minimized.add(tool);
+      final existing = _openAppById(tool.id);
+      if (existing != null) {
+        _openApps.remove(existing);
+        existing
+          ..minimized = false
+          ..dockSeq = null;
+        _openApps.add(existing);
+      } else {
+        _openApps.add(_OpenApp(tool));
+      }
     });
     _persistOpenApps();
   }
 
-  void _restoreTool(BuoyTool tool) {
+  void _closeTool(String id) {
+    setState(() => _openApps.removeWhere((a) => a.tool.id == id));
+    _persistOpenApps();
+  }
+
+  /// Minimize: hide the modal, dock a restorable icon. The record stays in
+  /// [_openApps] and the tool stays MOUNTED (RN parity — RN keeps minimized
+  /// apps rendering offscreen so their state and subscriptions survive). Its
+  /// JsModal has already flushed geometry to persistence.
+  void _minimizeTool(String id) {
+    final app = _openAppById(id);
+    if (app == null || app.minimized) return;
     setState(() {
-      _minimized.removeWhere((t) => t.id == tool.id);
-      _openTool = tool;
+      app
+        ..minimized = true
+        ..dockSeq = _nextDockSeq++;
+    });
+    _persistOpenApps();
+  }
+
+  /// Restore from the dock: un-hide in place. Deliberately NO reorder — RN's
+  /// `restore()` brings a tool back at its original z-slot; only relaunching
+  /// via dial/menu brings to front.
+  void _restoreTool(BuoyTool tool) {
+    final app = _openAppById(tool.id);
+    if (app == null) return;
+    setState(() {
+      app
+        ..minimized = false
+        ..dockSeq = null;
     });
     _persistOpenApps();
   }
@@ -246,34 +286,55 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   /// is read once by [OverlayState], so this never re-runs from an ancestor
   /// rebuild — [setState] marks the entry dirty instead (see the override above).
   Widget _buoyLayers(BuildContext context) {
-    final openTool = _openTool;
+    // Every Stack child carries a stable key: open-tool reorders
+    // (bring-to-front) and list-length changes (dial dismissing while a tool
+    // launches) can land in the same frame, and an unkeyed FloatingBubble
+    // caught in the diff's keyed middle range would be remounted — losing its
+    // drag position.
     return Stack(
       fit: StackFit.expand,
       children: [
         // Tool-owned full-screen overlays (e.g. image-overlay's mockup image)
         // render OUTSIDE any modal, above the app but below the interactive
         // Buoy UI. Renders nothing until a tool registers a builder.
-        const _OverlayHostLayer(),
-        // JsModal-style tools render their own modal surface; screen-style
-        // tools fall back to the full-screen host.
-        if (openTool != null && openTool.modalBuilder != null)
-          openTool.modalBuilder!(
-            context,
-            _storage,
-            _closeTool,
-            _minimizeTool,
-          )
-        else if (openTool != null)
-          _ToolHost(tool: openTool, onClose: _closeTool),
+        const _OverlayHostLayer(key: ValueKey('buoy-overlay-host')),
+        // Open tools in list order = z-order (RN AppOverlay maps openApps to
+        // BASE_ZINDEX + index). JsModal-style tools render their own modal
+        // surface and stay mounted while minimized (hidden via
+        // BuoyModalVisibility — RN's visible={!app.minimized}); screen-style
+        // tools fall back to the full-screen host, which unmounts when
+        // minimized (RN inline launch mode returns null when hidden).
+        for (final app in _openApps)
+          if (app.tool.modalBuilder != null)
+            BuoyModalVisibility(
+              key: ValueKey('buoy-app-${app.tool.id}'),
+              visible: !app.minimized,
+              child: app.tool.modalBuilder!(
+                context,
+                _storage,
+                () => _closeTool(app.tool.id),
+                () => _minimizeTool(app.tool.id),
+              ),
+            )
+          else if (!app.minimized)
+            KeyedSubtree(
+              key: ValueKey('buoy-app-${app.tool.id}'),
+              child: _ToolHost(
+                tool: app.tool,
+                onClose: () => _closeTool(app.tool.id),
+              ),
+            ),
         FloatingBubble(
+          key: const ValueKey('buoy-bubble'),
           storage: _storage,
-          pushToSide: _dialVisible || openTool != null,
+          pushToSide: _dialVisible || _anyVisibleOpen,
           onOpenDial: _openDial,
-          minimizedTools: _minimized,
+          minimizedTools: _minimizedTools,
           onRestoreMinimized: _restoreTool,
         ),
         if (_dialVisible)
           DialOverlay(
+            key: const ValueKey('buoy-dial'),
             tools: _allTools,
             storage: _storage,
             onLaunch: _launchTool,
@@ -284,12 +345,26 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
   }
 }
 
+/// One entry in the open-tools stack (RN `AppInstance`, minus the unused
+/// multi-instance machinery — launches are singleton-by-tool-id, so the tool
+/// id doubles as the instance identity and widget key).
+class _OpenApp {
+  _OpenApp(this.tool, {this.minimized = false, this.dockSeq});
+
+  final BuoyTool tool;
+  bool minimized;
+
+  /// Order the tool was minimized in — drives dock icon order (RN appends to
+  /// its minimized tray). Null while visible.
+  int? dockSeq;
+}
+
 /// Renders every builder registered with [BuoyOverlayHost] as a stacked
 /// full-screen layer. Transparent regions pass touches through to the app
 /// child below (no opaque background) — the Flutter analog of RN's
 /// `pointerEvents="box-none"` standalone-overlay slot.
 class _OverlayHostLayer extends StatelessWidget {
-  const _OverlayHostLayer();
+  const _OverlayHostLayer({super.key});
 
   @override
   Widget build(BuildContext context) {

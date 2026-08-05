@@ -24,21 +24,30 @@ class ModalHeader extends StatelessWidget {
 
 /// ModalHeader.Navigation — back chevron (padding 4, size 20).
 class ModalHeaderBack extends StatelessWidget {
-  const ModalHeaderBack({super.key, required this.onBack});
+  const ModalHeaderBack({super.key, required this.onBack, this.label = 'Back'});
 
   final VoidCallback onBack;
 
+  /// What assistive tech (and any UI driver) sees. A bare chevron with no
+  /// label announces nothing and can't be targeted by name — every tool's back
+  /// button goes through this widget, so it's worth stating once here.
+  final String label;
+
   @override
   Widget build(BuildContext context) {
-    return TouchableOpacity(
-      activeOpacity: 0.2,
-      onTap: onBack,
-      child: const Padding(
-        padding: EdgeInsets.all(4),
-        child: BuoyGlyph(
-          BuoyIcons.chevronLeft,
-          size: 20,
-          color: BuoyColors.textSecondary,
+    return Semantics(
+      button: true,
+      label: label,
+      child: TouchableOpacity(
+        activeOpacity: 0.2,
+        onTap: onBack,
+        child: const Padding(
+          padding: EdgeInsets.all(4),
+          child: BuoyGlyph(
+            BuoyIcons.chevronLeft,
+            size: 20,
+            color: BuoyColors.textSecondary,
+          ),
         ),
       ),
     );

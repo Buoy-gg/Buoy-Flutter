@@ -613,6 +613,22 @@ const BuoyIconData barChartGlyph = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// bookmark
+// ----------------------------------------------------------------------
+
+const BuoyIconData bookmarkGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifLine(x1: -7.0, y1: -7.5, x2: 7.0, y2: -7.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -7.0, y1: -7.5, x2: -7.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 7.0, y1: -7.5, x2: 7.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -7.0, y1: 9.0, x2: 0.0, y2: 4.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 7.0, y1: 9.0, x2: 0.0, y2: 4.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // box
 // ----------------------------------------------------------------------
 
@@ -943,6 +959,24 @@ const BuoyIconData filterGlyph = BuoyIconData(
     BifLine(x1: 10.0, y1: -9.0, x2: 2.0, y2: 0.5, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: -2.0, y1: 0.5, x2: -2.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: 2.0, y1: 0.5, x2: 2.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// flask-conical
+// ----------------------------------------------------------------------
+
+const BuoyIconData flaskConicalGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifLine(x1: -3.5, y1: -10.0, x2: 3.5, y2: -10.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -2.0, y1: -10.0, x2: -2.0, y2: -2.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 2.0, y1: -10.0, x2: 2.0, y2: -2.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -2.0, y1: -2.5, x2: -7.3, y2: 8.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 2.0, y1: -2.5, x2: 7.3, y2: 8.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -7.3, y1: 8.5, x2: 7.3, y2: 8.5, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -5.0, y1: 4.0, x2: 5.0, y2: 4.0, stroke: BifPaint.theme, strokeWidth: 2.0),
   ],
 );
 
@@ -1505,6 +1539,7 @@ const Map<String, BuoyIconData> buoyGlyphsByName = <String, BuoyIconData>{
   'arrow-down': arrowDownGlyph,
   'arrow-up': arrowUpGlyph,
   'bar-chart': barChartGlyph,
+  'bookmark': bookmarkGlyph,
   'box': boxGlyph,
   'braces': bracesGlyph,
   'bug': bugGlyph,
@@ -1527,6 +1562,7 @@ const Map<String, BuoyIconData> buoyGlyphsByName = <String, BuoyIconData>{
   'file-text': fileTextGlyph,
   'film': filmGlyph,
   'filter': filterGlyph,
+  'flask-conical': flaskConicalGlyph,
   'gauge': gaugeGlyph,
   'git-branch': gitBranchGlyph,
   'globe': globeGlyph,
