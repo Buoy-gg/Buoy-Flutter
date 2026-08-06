@@ -8,6 +8,25 @@ import 'dart:ui' show Color;
 import '../buoy_icon_data.dart';
 
 // ----------------------------------------------------------------------
+// assets
+// ----------------------------------------------------------------------
+
+/// Brand color for the assets icon (RN: `ASSETS_ICON_COLOR`).
+const Color kAssetsIconColor = Color(0xFF2DD4BF);
+
+const BuoyIconData assetsIconData = BuoyIconData(
+  color: kAssetsIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -10.0, y: -10.0, width: 20.0, height: 20.0, fill: BifPaint.theme, borderRadius: 4.5, opacity: 0.08),
+    BifRect(x: -10.0, y: -10.0, width: 20.0, height: 20.0, border: true, borderWidth: 1.5, borderRadius: 4.5, opacity: 0.9, glow: true, glowRadius: 3.0),
+    BifRect(x: -6.0, y: -7.4, width: 12.0, height: 3.8, fill: BifPaint.theme, borderRadius: 1.4, opacity: 0.95),
+    BifRect(x: -6.0, y: -1.9, width: 12.0, height: 3.8, fill: BifPaint.theme, borderRadius: 1.4, opacity: 0.6),
+    BifRect(x: -6.0, y: 3.6, width: 12.0, height: 3.8, fill: BifPaint.theme, borderRadius: 1.4, opacity: 0.3),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // benchmark
 // ----------------------------------------------------------------------
 
@@ -1507,6 +1526,7 @@ const BuoyIconData zapGlyph = BuoyIconData(
 
 /// Every generated brand icon, keyed by its BIF name.
 const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
+  'assets': assetsIconData,
   'benchmark': benchmarkIconData,
   'console': consoleIconData,
   'env': envIconData,
