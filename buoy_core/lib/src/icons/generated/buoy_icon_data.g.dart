@@ -511,6 +511,26 @@ const BuoyIconData storageIconData = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// time-machine
+// ----------------------------------------------------------------------
+
+/// Brand color for the time-machine icon (RN: `TIME_MACHINE_ICON_COLOR`).
+const Color kTimeMachineIconColor = Color(0xFF06B6D4);
+
+const BuoyIconData timeMachineIconData = BuoyIconData(
+  color: kTimeMachineIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifCircle(cx: 0.0, cy: 0.0, r: 10.0, fill: BifPaint.theme, opacity: 0.08),
+    BifArc(cx: 0.0, cy: 0.0, r: 8.5, startAngle: 245.0, endAngle: 200.0, strokeWidth: 1.8, opacity: 0.9),
+    BifTriangle(x: -7.6, y: -3.2, size: 3.4, direction: BifDirection.down, fill: BifPaint.theme, opacity: 0.9),
+    BifLine(x1: 0.0, y1: -4.8, x2: 0.0, y2: 0.6, stroke: BifPaint.theme, strokeWidth: 1.7, opacity: 0.9),
+    BifLine(x1: 0.0, y1: 0.6, x2: 3.4, y2: 2.4, stroke: BifPaint.theme, strokeWidth: 1.7, opacity: 0.9),
+    BifCircle(cx: 0.0, cy: 0.6, r: 1.1, fill: BifPaint.theme, opacity: 1.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // wifi
 // ----------------------------------------------------------------------
 
@@ -1547,6 +1567,7 @@ const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
   'routes': routesIconData,
   'sentry': sentryIconData,
   'storage': storageIconData,
+  'time-machine': timeMachineIconData,
   'wifi': wifiIconData,
 };
 
