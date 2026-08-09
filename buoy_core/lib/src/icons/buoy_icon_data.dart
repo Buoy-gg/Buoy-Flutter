@@ -86,6 +86,7 @@ final class BifCircle extends BifElement {
     this.fill,
     this.border = false,
     this.borderWidth = 2.0,
+    this.borderColor,
     this.opacity = 1.0,
     this.scaleX = 1.0,
     this.scaleY = 1.0,
@@ -99,6 +100,9 @@ final class BifCircle extends BifElement {
   final BifPaint? fill;
   final bool border;
   final double borderWidth;
+
+  /// Border stroke color; null = the icon theme color.
+  final BifPaint? borderColor;
   final double opacity;
 
   /// Scale about the element's own center.
@@ -121,6 +125,7 @@ final class BifRect extends BifElement {
     this.fill,
     this.border = false,
     this.borderWidth = 1.0,
+    this.borderColor,
     this.borderRadius = 0.0,
     this.opacity = 1.0,
     this.rotation,
@@ -136,6 +141,9 @@ final class BifRect extends BifElement {
   final BifPaint? fill;
   final bool border;
   final double borderWidth;
+
+  /// Border stroke color; null = the icon theme color.
+  final BifPaint? borderColor;
   final double borderRadius;
   final double opacity;
 
@@ -264,6 +272,7 @@ final class BifSemicircle extends BifElement {
     this.fill,
     this.border = false,
     this.borderWidth = 2.0,
+    this.borderColor,
     this.opacity = 1.0,
     this.glow = false,
     this.glowRadius = 4.0,
@@ -276,6 +285,9 @@ final class BifSemicircle extends BifElement {
   final BifPaint? fill;
   final bool border;
   final double borderWidth;
+
+  /// Border stroke color; null = the icon theme color.
+  final BifPaint? borderColor;
   final double opacity;
   final bool glow;
   final double glowRadius;

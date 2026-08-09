@@ -194,7 +194,12 @@ class BuoyIconPainter extends CustomPainter {
       canvas.drawCircle(
         origin,
         r - strokeWidth / 2,
-        _paint(color: theme, opacity: e.opacity, stroke: true, strokeWidth: strokeWidth),
+        _paint(
+          color: e.borderColor?.resolve(theme, bg) ?? theme,
+          opacity: e.opacity,
+          stroke: true,
+          strokeWidth: strokeWidth,
+        ),
       );
     }
 
@@ -244,7 +249,12 @@ class BuoyIconPainter extends CustomPainter {
           canvas,
           inner,
           math.max(0.0, radius - strokeWidth / 2),
-          _paint(color: theme, opacity: e.opacity, stroke: true, strokeWidth: strokeWidth),
+          _paint(
+            color: e.borderColor?.resolve(theme, bg) ?? theme,
+            opacity: e.opacity,
+            stroke: true,
+            strokeWidth: strokeWidth,
+          ),
         );
       }
     });
@@ -399,7 +409,12 @@ class BuoyIconPainter extends CustomPainter {
         _rad(startDeg),
         math.pi,
         true,
-        _paint(color: theme, opacity: e.opacity, stroke: true, strokeWidth: strokeWidth),
+        _paint(
+          color: e.borderColor?.resolve(theme, bg) ?? theme,
+          opacity: e.opacity,
+          stroke: true,
+          strokeWidth: strokeWidth,
+        ),
       );
     }
   }
