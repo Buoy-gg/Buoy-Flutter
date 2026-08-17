@@ -1,3 +1,9 @@
+## 0.3.2
+
+- Re-exports the new `buoy_core` wire-size guards (`approxJsonSize`,
+  `isOverWireBudget`, `isJsonEncodable`, `maxSnapshotEmitBytes`,
+  `maxActionResultBytes`) so tool adapters import them from their usual barrel.
+
 ## 0.3.1
 
 - New `devToolsStorageKeys.network` keys: `saved()` (pinned + saved request

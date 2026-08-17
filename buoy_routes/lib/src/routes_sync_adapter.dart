@@ -22,6 +22,30 @@ Map<String, Object?>? _asMap(Object? params) {
   return null;
 }
 
+/// Navigation params larger than this are NOT streamed in the snapshot.
+/// Apps routinely pass whole objects through `context.push(..., extra: user)`;
+/// 500 of those on every route change exceed the 2MB emit budget and drop the
+/// Routes panel. Pathname/segments stay inline.
+const int snapshotParamInlineLimit = 16 * 1024;
+
+const Map<String, Object?> paramsOnDevice = {
+  '__buoyOmitted': 'route-params',
+  'note': 'Navigation params stay on the device.',
+};
+
+bool _shouldOmitParams(Object? params) {
+  if (params == null) return false;
+  return isOverWireBudget(params, snapshotParamInlineLimit);
+}
+
+/// Replace an oversized `params` field in an already-serialized event or stack
+/// item. Both [RouteChangeEvent] and [StackDisplayItem] put `params` at the top
+/// level of their JSON, so one helper covers both.
+Map<String, Object?> _toWireJson(Map<String, Object?> json) {
+  if (!_shouldOmitParams(json['params'])) return json;
+  return {...json, 'params': paramsOnDevice};
+}
+
 /// RN `getSitemapSnapshot` — the parsed route tree plus its metadata.
 Map<String, Object?> _sitemapSnapshot() {
   final controller = BuoyRoutesController.instance;
@@ -37,10 +61,14 @@ Map<String, Object?> _sitemapSnapshot() {
 final routeEventsSyncAdapter = ToolSyncAdapter(
   version: 3,
   getSnapshot: () => {
-    'events': [for (final e in RouteEventStore.instance.getEvents()) e.toJson()],
+    'events': [
+      for (final e in RouteEventStore.instance.getEvents())
+        _toWireJson(e.toJson()),
+    ],
     'sitemap': _sitemapSnapshot(),
     'stack': [
-      for (final s in NavigationStackStore.instance.getStack()) s.toJson(),
+      for (final s in NavigationStackStore.instance.getStack())
+        _toWireJson(s.toJson()),
     ],
   },
   subscribe: (onChange) {

@@ -72,10 +72,18 @@ class BuoyConsole {
       }
     };
 
-    // ── FlutterError.onError → error (framework/build errors) ────────────
+    // ── FlutterError.onError → [RENDER ERROR] ────────────────────────────
+    // Tagged, but NOT marked fatal: Flutter fires this for a build error that
+    // `ErrorWidget` then recovers from, with the same details as a real crash.
+    // See ConsoleLogStore.recordFatal.
     _originalFlutterOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
-      _recordError(details.exceptionAsString(), details.stack);
+      ConsoleLogStore.instance.recordFatal(
+        '[RENDER ERROR]',
+        details.exception,
+        stack: details.stack,
+        fatal: false,
+      );
       _suppress++;
       try {
         _originalFlutterOnError?.call(details);
@@ -84,10 +92,16 @@ class BuoyConsole {
       }
     };
 
-    // ── PlatformDispatcher.onError → error (uncaught async, non-zoned) ────
+    // ── PlatformDispatcher.onError → [UNCAUGHT] ──────────────────────────
+    // Nothing else handled this error — it reached the platform. That is the
+    // Flutter analogue of RN's global error handler.
     _originalPlatformOnError = PlatformDispatcher.instance.onError;
     PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-      _recordError(error.toString(), stack);
+      ConsoleLogStore.instance.recordFatal(
+        '[UNCAUGHT]',
+        error,
+        stack: stack,
+      );
       return _originalPlatformOnError?.call(error, stack) ?? false;
     };
   }
@@ -112,7 +126,13 @@ class BuoyConsole {
         install();
         body();
       },
-      (Object error, StackTrace stack) => _recordError(error.toString(), stack),
+      // Uncaught inside the guarded zone — the app kept running, but nothing
+      // in app code handled this.
+      (Object error, StackTrace stack) => ConsoleLogStore.instance.recordFatal(
+        '[UNCAUGHT]',
+        error,
+        stack: stack,
+      ),
       zoneSpecification: ZoneSpecification(
         print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
           if (_suppress == 0 && _inDebugForward == 0) {
@@ -128,12 +148,4 @@ class BuoyConsole {
     );
   }
 
-  static void _recordError(String message, StackTrace? stack) {
-    ConsoleLogStore.instance.record(
-      'error',
-      [message],
-      rawStack: stack,
-      errorStack: stack,
-    );
-  }
 }

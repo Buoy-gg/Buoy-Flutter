@@ -1,8 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show ValueNotifier;
+import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:socket_io_client/socket_io_client.dart' as io;
+
+import 'sync/crash_flush.dart';
+import 'sync/wire_budget.dart';
+
+/// Log prefix, matching the RN bridge's so desktop-side triage of a mixed
+/// RN/Flutter fleet greps for one string.
+const String _log = '[ExternalSync]';
 
 /// Connection state surfaced to the settings modal's DESKTOP SYNC card
 /// (mirrors the RN useDesktopSyncStatus states).
@@ -116,9 +123,23 @@ class BuoySyncClient {
     if (isConnected) _sendCapabilities();
   }
 
+  /// The crash-flush escape hatch, registered while this client is connected.
+  ///
+  /// Guarded exactly like the throttled path: a disconnected socket or an
+  /// unwatched tool means there is nothing to push, and pushing anyway would
+  /// build a snapshot in a customer's app for no observer. Cancels any pending
+  /// throttle timer first so the crash entry isn't immediately re-sent.
+  void _flushNow(String toolId) {
+    if (!isConnected) return;
+    if (!_unsubs.containsKey(toolId)) return; // nobody is watching this tool
+    _timers.remove(toolId)?.cancel();
+    _sendSnapshot(toolId);
+  }
+
   void connect() {
     if (_socket != null) return;
     instance = this;
+    registerToolFlusher(_flushNow);
 
     final nonce =
         '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}-flutter';
@@ -157,6 +178,7 @@ class BuoySyncClient {
   }
 
   void dispose() {
+    unregisterToolFlusher(_flushNow);
     for (final unsub in _unsubs.values) {
       unsub();
     }
@@ -172,9 +194,24 @@ class BuoySyncClient {
   bool _isForThisDevice(String? target) =>
       target == 'All' || target == deviceId;
 
+  /// Mirrors RN's `safeEmit`: socket.io encodes the payload synchronously, and
+  /// an unencodable field throws from inside `emit`. Unguarded, that exception
+  /// unwinds through whatever store notification triggered the snapshot — a
+  /// devtool taking down app code. Report it and carry on instead.
   void _emit(String event, Map<String, Object?> message) {
-    _socket?.emit(event, message);
+    try {
+      _socket?.emit(event, message);
+    } catch (error) {
+      debugPrint(
+        '$_log Failed to emit "$event": $error. '
+        'Payload must be JSON-serializable.',
+      );
+    }
   }
+
+  /// Warn once per tool. This fires on a snapshot loop, so an unconditional
+  /// warning would itself become the performance problem it reports.
+  final Set<String> _warnedOversized = <String>{};
 
   void _sendCapabilities() {
     _emit('devtool-capabilities', {
@@ -205,13 +242,32 @@ class BuoySyncClient {
     if (tool == null) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     _lastEmit[toolId] = now;
+    final payload = tool.getSnapshot();
+
+    // The choke-point guard. Per-adapter caps get missed, and one adapter
+    // shipping a raw state tree janks every app that opens a dashboard. An
+    // oversized payload is DROPPED here rather than encoded: the panel goes
+    // stale for that tool instead of the whole app stuttering.
+    final walk = approxJsonSize(payload, maxSnapshotEmitBytes);
+    if (walk.bytes > maxSnapshotEmitBytes) {
+      if (_warnedOversized.add(toolId)) {
+        debugPrint(
+          '$_log "$toolId" snapshot ≈${(walk.bytes / 1e6).toStringAsFixed(1)}MB '
+          'exceeds the ${maxSnapshotEmitBytes ~/ 1000000}MB sync budget — dropped '
+          '(dashboard will be stale for this tool). The adapter should ship a '
+          'wire-form snapshot (summaries + on-demand detail).',
+        );
+      }
+      return;
+    }
+
     _emit('devtool-sync', {
       'toolId': toolId,
       'persistentDeviceId': deviceId,
       'timestamp': now,
       'version': tool.version,
       'kind': 'snapshot',
-      'payload': tool.getSnapshot(),
+      'payload': payload,
     });
   }
 
@@ -292,6 +348,23 @@ class BuoySyncClient {
     } catch (error) {
       result['error'] = error.toString();
     }
+
+    // Action results get a larger budget than snapshots — a caller asking for
+    // one event's body has explicitly opted into the cost — but not an
+    // unlimited one. Over it, the caller gets an actionable error instead of a
+    // silent freeze.
+    if (result['ok'] == true) {
+      final walk = approxJsonSize(result['result'], maxActionResultBytes);
+      if (walk.bytes > maxActionResultBytes) {
+        result['ok'] = false;
+        result['result'] = null;
+        result['error'] =
+            'Result ≈${(walk.bytes / 1e6).toStringAsFixed(1)}MB exceeds the '
+            '${maxActionResultBytes ~/ 1000000}MB sync budget. Narrow the request '
+            '(e.g. includeValues:false, a limit, or a more specific action).';
+      }
+    }
+
     result['timestamp'] = DateTime.now().millisecondsSinceEpoch;
     _emit('devtool-action-result', result);
   }

@@ -1,3 +1,14 @@
+## 0.3.2
+
+- Snapshot payloads are compacted per source, so a heavy field no longer takes
+  the event's type and title with it: state trees, network bodies and headers,
+  GraphQL variables, storage values and route params degrade to a
+  `__buoyOmitted` marker while the event's summary survives.
+- Fixed: an event whose payload merely SHARED an object reference twice was
+  discarded entirely. Structural sharing is not a cycle — `{user, currentUser}`
+  pointing at one object is ordinary and encodes fine. Only a confirmed encoding
+  failure truncates now.
+
 ## 0.3.1
 
 - Header search filters the unified timeline live as you type — matches

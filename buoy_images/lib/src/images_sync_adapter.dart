@@ -11,6 +11,61 @@ import 'image_record.dart';
 import 'images_actions.dart';
 import 'images_store.dart';
 
+/// A `data:` URI IS the image. One base64 photo can be megabytes, and 100
+/// records ride on every snapshot — enough on their own to blow the 2MB emit
+/// budget and drop the whole Images panel. Summarize instead of sending.
+const int snapshotUriInlineLimit = 2 * 1024;
+
+/// RN `toWireUri`. Keeps the `data:` header and a head…tail hint so the record
+/// is still identifiable in the dashboard.
+String toWireUri(String uri) {
+  if (uri.isEmpty) return uri;
+  if (uri.startsWith('data:')) {
+    final comma = uri.indexOf(',');
+    final header = comma >= 0
+        ? uri.substring(0, comma + 1 < 64 ? comma + 1 : 64)
+        : 'data:';
+    final payload = comma >= 0 ? uri.substring(comma + 1) : uri;
+    final hint = payload.length > 16
+        ? '${payload.substring(0, 8)}…${payload.substring(payload.length - 8)}'
+        : payload;
+    return '$header[${uri.length} chars $hint]';
+  }
+  if (uri.length <= snapshotUriInlineLimit) return uri;
+  return '${uri.substring(0, snapshotUriInlineLimit)}… '
+      '[${uri.length - snapshotUriInlineLimit} more]';
+}
+
+/// RN `capText` — an error string can carry a whole response body.
+String? _capText(String? value, [int limit = snapshotUriInlineLimit]) {
+  if (value == null || value.isEmpty) return null;
+  if (value.length <= limit) return value;
+  return '${value.substring(0, limit)}… [${value.length - limit} more]';
+}
+
+/// RN `toWireInsights` — the insight lists repeat record URIs, so they need the
+/// same cap the records themselves get.
+Map<String, Object?> _toWireInsights(Map<String, Object?> insights) {
+  Object? capList(Object? list) => list is! List
+      ? list
+      : [
+          for (final item in list)
+            if (item is Map && item['uri'] is String)
+              {
+                ...item.cast<String, Object?>(),
+                'uri': toWireUri(item['uri']! as String),
+              }
+            else
+              item,
+        ];
+  return {
+    ...insights,
+    'duplicates': capList(insights['duplicates']),
+    'retryStorms': capList(insights['retryStorms']),
+    'layoutShifters': capList(insights['layoutShifters']),
+  };
+}
+
 /// Slim wire form of a record (heavy/derived fields precomputed + rounded) —
 /// RN toWire.
 Map<String, Object?> _toWire(ImageRecord record) {
@@ -19,7 +74,7 @@ Map<String, Object?> _toWire(ImageRecord record) {
   return {
     'id': record.id,
     'lib': record.lib.name,
-    'uri': record.uri,
+    'uri': toWireUri(record.uri),
     'kind': record.sourceKind.name,
     'status': record.status.name,
     'mounted': record.mounted,
@@ -34,7 +89,7 @@ Map<String, Object?> _toWire(ImageRecord record) {
     'wastedKB': (estWastedBytes(record) / 1024).round(),
     'progressSeen': record.progressSeen,
     'bytesTotal': record.bytesTotal,
-    'error': record.error,
+    'error': _capText(record.error),
     'errorCode': record.errorCode,
     'loadCount': record.loadCount,
     'overrideLabel': record.overrideLabel,
@@ -64,7 +119,7 @@ Map<String, Object?> _overview() {
     'stats': computeStats(snapshot).toJson(),
     'captureStatus': const CaptureStatus(installed: true).toJson(),
     'globalModes': {'network': modes.network, 'blank': modes.blank},
-    'insights': computeInsights(snapshot).toJson(),
+    'insights': _toWireInsights(computeInsights(snapshot).toJson()),
     // records handled by the caller (reverse + slice + toWire)
     '_records': snapshot,
   };

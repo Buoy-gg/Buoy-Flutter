@@ -35,12 +35,91 @@ Map<String, Object?>? _asMap(Object? params) {
 ImpersonateUser _user(Object? params) =>
     ImpersonateUser.fromJson((_asMap(params)!['user'] as Map).cast<String, Object?>());
 
+/// `data:` avatar URLs (and any URL over this) are NOT copied onto the
+/// snapshot. UserCard renders initials, not the image, but apps still put
+/// base64 photos on `avatarUrl` / dump the API user into `metadata`. Ten
+/// history entries of those blow the 2MB emit budget and drop the panel.
+const int snapshotUriInlineLimit = 2 * 1024;
+const int snapshotMetadataInlineLimit = 16 * 1024;
+
+const Map<String, Object?> metadataOnDevice = {
+  '__buoyOmitted': 'user-metadata',
+  'note': 'User metadata stays on the device.',
+};
+
+/// Summarize a `data:` URL and truncate any other oversized one, rather than
+/// dropping it — the dashboard shows what KIND of value is there.
+String? toWireUri(String? uri) {
+  if (uri == null || uri.isEmpty) return uri;
+  if (uri.startsWith('data:')) {
+    final comma = uri.indexOf(',');
+    final header = comma >= 0
+        ? uri.substring(0, comma + 1 < 64 ? comma + 1 : 64)
+        : 'data:';
+    return '$header[${uri.length} chars]';
+  }
+  if (uri.length <= snapshotUriInlineLimit) return uri;
+  return '${uri.substring(0, snapshotUriInlineLimit)}… '
+      '[${uri.length - snapshotUriInlineLimit} more]';
+}
+
+Map<String, Object?>? _toWireMetadata(Map<String, Object?>? metadata) {
+  if (metadata == null) return metadata;
+  if (!isOverWireBudget(metadata, snapshotMetadataInlineLimit)) return metadata;
+  // Keep `role` so the user card still badges the impersonated user.
+  final role = metadata['role'];
+  return role is String
+      ? {'role': role, ...metadataOnDevice}
+      : {...metadataOnDevice};
+}
+
+/// Wire form of one serialized user. Built on the JSON rather than the model so
+/// the omission markers (which are Maps, where the model declares a String) do
+/// not have to be forced through [ImpersonateUser]'s types — the wire form is a
+/// projection of on-device truth, not the truth itself.
+Map<String, Object?> _toWireUser(Map<String, Object?> user) {
+  final out = Map<String, Object?>.of(user);
+  if (out.containsKey('avatarUrl')) {
+    out['avatarUrl'] = toWireUri(out['avatarUrl'] as String?);
+  }
+  if (out.containsKey('metadata')) {
+    out['metadata'] = _toWireMetadata(
+      (out['metadata'] as Map?)?.cast<String, Object?>(),
+    );
+  }
+  return out;
+}
+
+/// RN `toWireState` — cap the current user and every history entry's user.
+Map<String, Object?> _toWireState(Map<String, Object?> state) {
+  final out = Map<String, Object?>.of(state);
+  final current = out['currentUser'];
+  if (current is Map) {
+    out['currentUser'] = _toWireUser(current.cast<String, Object?>());
+  }
+  final history = out['history'];
+  if (history is List) {
+    out['history'] = [
+      for (final entry in history)
+        if (entry is Map)
+          {
+            ...entry.cast<String, Object?>(),
+            if (entry['user'] is Map)
+              'user': _toWireUser((entry['user']! as Map).cast<String, Object?>()),
+          }
+        else
+          entry,
+    ];
+  }
+  return out;
+}
+
 /// The impersonate tool's sync adapter — mirrors impersonateSyncAdapter.ts.
 /// User search proxies to the handler the app passed to registerBuoyImpersonate;
 /// if unconfigured, the action reports a descriptive error to the dashboard.
 final impersonateSyncAdapter = ToolSyncAdapter(
   version: 1,
-  getSnapshot: () => BuoyImpersonate.instance.state.toJson(),
+  getSnapshot: () => _toWireState(BuoyImpersonate.instance.state.toJson()),
   subscribe: (onChange) {
     BuoyImpersonate.instance.addListener(onChange);
     return () => BuoyImpersonate.instance.removeListener(onChange);

@@ -3,7 +3,7 @@ description: >-
   Buoy image debugger for Flutter — a live registry of every image the app loads
   with cache verdicts, load timings, oversize audits, and a failure log,
   streaming to Buoy Desktop.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 

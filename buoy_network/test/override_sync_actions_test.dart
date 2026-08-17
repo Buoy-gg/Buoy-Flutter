@@ -24,8 +24,8 @@ void main() {
   Object? call(String action, [Object? params]) =>
       networkSyncAdapter.actions[action]!(params);
 
-  test('the adapter advertises v4 and the object payload shape', () {
-    expect(networkSyncAdapter.version, 4);
+  test('the adapter advertises v5 and the object payload shape', () {
+    expect(networkSyncAdapter.version, 5);
     final snapshot = networkSyncAdapter.getSnapshot() as Map;
     expect(snapshot.containsKey('events'), isTrue);
     expect(snapshot.containsKey('overrides'), isTrue);
@@ -44,6 +44,7 @@ void main() {
       'clearOverrideRules',
       'listOverrideRules',
       'getOverrideRuleBody',
+      'getCaptureStatus',
       'debugOverrides',
     ]) {
       expect(

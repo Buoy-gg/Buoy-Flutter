@@ -1,3 +1,21 @@
+## 0.3.3
+
+- Sync adapter is now **version 5**, matching the React Native adapter.
+- Boot-time requests are no longer lost. Capture used to start with the first
+  subscriber (modal open, dashboard or MCP watch), long after the app's startup
+  requests had fired; those are now parked in a bounded buffer and flushed in on
+  first subscribe.
+- Body stripping falls back to a size walk when the cached `requestSize` /
+  `responseSize` proxy is missing or wrong (it read 0 for a body the capture
+  layer failed to measure, so that body rode every snapshot uncapped).
+- Explicit `requestBodyOmitted` / `responseBodyOmitted` / `headersOmitted` flags,
+  so a withheld body is distinguishable from a request that had none. Sizes stay
+  honest rather than being doctored down.
+- Header values over 64 chars are truncated, keeping the key set.
+- The event list is spent against a 1.25MB snapshot budget, newest first.
+- Added the `getCaptureStatus` action, which answers "why is the list empty?"
+  with the subscriber count rather than leaving the caller to guess.
+
 ## 0.3.2
 
 - Chrome-style **response overrides**: match rules (URL pattern + method) that

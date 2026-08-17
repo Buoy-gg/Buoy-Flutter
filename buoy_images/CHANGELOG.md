@@ -1,3 +1,9 @@
+## 0.3.1
+
+- `data:` URIs are summarized rather than sent whole — a base64 image can be
+  megabytes, and 100 records ride on every snapshot. Long URIs are truncated,
+  error strings are capped, and the insight lists get the same treatment.
+
 ## 0.3.0
 
 - Initial release of the Buoy Images tool for Flutter: a live registry of every

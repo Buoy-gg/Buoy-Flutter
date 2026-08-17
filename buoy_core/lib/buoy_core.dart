@@ -7,6 +7,8 @@ library;
 
 export 'src/buoy.dart';
 export 'src/storage.dart';
+export 'src/sync/crash_flush.dart';
+export 'src/sync/wire_budget.dart';
 export 'src/sync_client.dart';
 export 'src/tool.dart';
 export 'src/ui/buoy_devtools.dart';

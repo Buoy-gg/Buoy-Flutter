@@ -33,8 +33,57 @@ const String _attributionHeader = 'x-buoy-flutter-client';
 /// via the getEventBody action.
 const int snapshotBodyInlineLimit = 16 * 1024;
 
+/// Total inline budget for one snapshot's event list, held under the emit
+/// layer's 2MB so a snapshot is never DROPPED (a drop leaves the whole panel
+/// stale). Per-field caps alone don't get there: 500 requests with 9KB
+/// responses are all individually legal and still add up to ~4.7MB. Newest
+/// events keep their bodies inline (that's what a developer is looking at);
+/// once the budget is spent, older events degrade to metadata + fetch-on-demand.
+///
+/// 1.25 * 1024 * 1024, spelled as an int (Dart const double arithmetic).
+const int snapshotEventsBudget = 1310720;
+
+/// Header values above this are truncated on the snapshot. A single `cookie`
+/// or `authorization` header can be kilobytes, and headers ride on EVERY event.
+const int snapshotHeaderValueLimit = 64;
+
+/// Should this body be withheld from the list snapshot?
+///
+/// Prefer the cached size proxy already on the event — it is free when it is
+/// right. The walk is the fallback for when it is missing or WRONG (0 for a
+/// fat or unencodable body), which is the case the size field alone could not
+/// catch: a body the capture layer failed to measure rode every snapshot.
+bool _shouldStripBody(Object? data, int? reportedSize) {
+  if (data == null) return false;
+  if ((reportedSize ?? 0) > snapshotBodyInlineLimit) return true;
+  return isOverWireBudget(data, snapshotBodyInlineLimit);
+}
+
+/// Truncate oversized header values, preserving the key set so the dashboard
+/// still shows WHICH headers were sent. Returns the original map (by identity)
+/// when nothing needed capping, so callers can detect a change cheaply.
+Map<String, String> _toWireHeaders(Map<String, String> headers) {
+  Map<String, String>? slim;
+  for (final entry in headers.entries) {
+    if (entry.value.length <= snapshotHeaderValueLimit) continue;
+    slim ??= Map<String, String>.of(headers);
+    slim[entry.key] =
+        '${entry.value.substring(0, snapshotHeaderValueLimit)}… '
+        '[${entry.value.length - snapshotHeaderValueLimit} more]';
+  }
+  return slim ?? headers;
+}
+
 const int _maxCapturedBody = 2 * 1024 * 1024;
 const int _maxEvents = 500;
+
+/// Cap on requests held in the boot buffer before the first consumer
+/// subscribes. Oldest are dropped first.
+///
+/// RN buffers RAW events, where a request and its response are two entries, so
+/// its 200 is ~100 requests. Flutter buffers whole event objects (the same
+/// instances the interceptor fills in), so 100 here is the same ~100 requests.
+const int _bootBufferMax = 100;
 
 /// URLs the capture layer skips entirely — Buoy's own broker socket plus any
 /// app-registered noise. Mirrors the RN listener's ignoredUrls (which filters
@@ -130,26 +179,45 @@ class NetworkCaptureEvent {
   /// the OVERRIDDEN section.
   NetworkOverrideMark? override;
 
-  Map<String, Object?> toJson({bool stripLargeBodies = false}) {
+  Map<String, Object?> toJson({
+    bool stripLargeBodies = false,
+    /// Force both bodies off the wire regardless of size — the metadata-only
+    /// form used for the tail of the list once the snapshot budget is spent.
+    bool metadataOnly = false,
+  }) {
     final uri = Uri.tryParse(url);
     final stripRequest =
-        stripLargeBodies &&
+        (stripLargeBodies || metadataOnly) &&
         requestData != null &&
-        (requestSize ?? 0) > snapshotBodyInlineLimit;
+        (metadataOnly || _shouldStripBody(requestData, requestSize));
     final stripResponse =
-        stripLargeBodies &&
+        (stripLargeBodies || metadataOnly) &&
         responseData != null &&
-        (responseSize ?? 0) > snapshotBodyInlineLimit;
+        (metadataOnly || _shouldStripBody(responseData, responseSize));
+    final wireRequestHeaders = stripLargeBodies || metadataOnly
+        ? _toWireHeaders(requestHeaders)
+        : requestHeaders;
+    final wireResponseHeaders = stripLargeBodies || metadataOnly
+        ? _toWireHeaders(responseHeaders)
+        : responseHeaders;
     return {
       'id': id,
       'method': method,
       'url': url,
       if (status != null) 'status': status,
       if (statusText != null) 'statusText': statusText,
-      'requestHeaders': requestHeaders,
-      'responseHeaders': responseHeaders,
+      'requestHeaders': wireRequestHeaders,
+      'responseHeaders': wireResponseHeaders,
+      if (!identical(wireRequestHeaders, requestHeaders) ||
+          !identical(wireResponseHeaders, responseHeaders))
+        'headersOmitted': true,
       if (!stripRequest && requestData != null) 'requestData': requestData,
       if (!stripResponse && responseData != null) 'responseData': responseData,
+      // Sizes stay HONEST — a doctored size used to be the only signal, so a
+      // withheld body was indistinguishable from an absent one. These explicit
+      // flags are what tell the dashboard to fetch via `getEventBody`.
+      if (stripRequest) 'requestBodyOmitted': true,
+      if (stripResponse) 'responseBodyOmitted': true,
       if (requestSize != null) 'requestSize': requestSize,
       if (responseSize != null) 'responseSize': responseSize,
       'timestamp': timestamp,
@@ -168,6 +236,13 @@ class NetworkCaptureEvent {
   }
 }
 
+/// One event's wire form plus its measured cost, so the budget pass is free.
+class _WireEvent {
+  const _WireEvent(this.json, this.bytes);
+  final Map<String, Object?> json;
+  final int bytes;
+}
+
 class NetworkEventStore {
   NetworkEventStore._();
   static final NetworkEventStore instance = NetworkEventStore._();
@@ -180,16 +255,61 @@ class NetworkEventStore {
   /// with the RN adapter: "subscribing starts the interceptor").
   bool capturing = false;
 
+  /// How many consumers are holding capture open. `getCaptureStatus` reports
+  /// this because it, not the interceptor, is what decides whether events are
+  /// actually being recorded.
+  int get subscriberCount => _listeners.length;
+
   String nextId() =>
       'flt-${DateTime.now().millisecondsSinceEpoch}-${_idCounter++}';
 
+  /// Requests captured before the first consumer subscribed — see [add].
+  ///
+  /// Chronological (oldest first), unlike [_events].
+  final List<NetworkCaptureEvent> _bootBuffer = [];
+
   void add(NetworkCaptureEvent event) {
-    if (!capturing) return;
+    // Boot buffer. Capture normally starts with the first subscriber — the
+    // Network modal opening, a dashboard watch, an MCP watch — which is long
+    // after the app's startup requests (main() fetches, session bootstrap, the
+    // first screen's loads) have already fired. Those used to be unrecoverable:
+    // by the time anything subscribed, boot traffic was simply gone, and
+    // `get_network_requests` answered "No requests captured" for a screen that
+    // had visibly loaded data.
+    //
+    // The interceptor is already installed at registerBuoyNetwork() time, so
+    // the events exist — they were just being dropped. Park them instead, and
+    // flush on the first subscribe. If nothing EVER subscribes, nothing is ever
+    // flushed: an explicit capture-off state never gains events it didn't ask
+    // for, and the buffer stays bounded.
+    if (!capturing) {
+      _bootBuffer.add(event);
+      if (_bootBuffer.length > _bootBufferMax) _bootBuffer.removeAt(0);
+      return;
+    }
     _events.insert(0, event);
     if (_events.length > _maxEvents) {
       _events.removeRange(_maxEvents, _events.length);
     }
     notify();
+  }
+
+  /// Move boot-buffered requests into the live list, oldest first so the
+  /// newest ends up at the head (`_events` is newest-first).
+  ///
+  /// The buffered objects are the SAME instances the interceptor mutates with
+  /// the response, so a request that completed while buffered arrives already
+  /// filled in — no replay of raw request/response pairs is needed the way the
+  /// RN port does it.
+  void _flushBootBuffer() {
+    if (_bootBuffer.isEmpty) return;
+    for (final event in _bootBuffer) {
+      _events.insert(0, event);
+    }
+    _bootBuffer.clear();
+    if (_events.length > _maxEvents) {
+      _events.removeRange(_maxEvents, _events.length);
+    }
   }
 
   /// A tracked event changed — refresh its pinned snapshot, then notify.
@@ -211,6 +331,9 @@ class NetworkEventStore {
 
   void clear() {
     _events.clear();
+    // Drop boot-buffered requests too: "clear" has to mean the list stays
+    // empty, not that a later subscribe resurrects pre-clear traffic.
+    _bootBuffer.clear();
     notify();
   }
 
@@ -221,9 +344,72 @@ class NetworkEventStore {
     return null;
   }
 
-  List<Object?> snapshot() => [
-    for (final e in _events) e.toJson(stripLargeBodies: true),
-  ];
+  /// Per-event wire caches. The store never mutates an event in place — a
+  /// response/override update replaces the object — so keying on identity is
+  /// correct and self-invalidating, and a completed request is converted once
+  /// instead of on all ~5 snapshots per second for as long as it stays in the
+  /// list. This is what keeps the guards off the hot path.
+  static final Expando<_WireEvent> _wireCache = Expando<_WireEvent>(
+    'buoyNetworkWire',
+  );
+  static final Expando<_WireEvent> _strippedCache = Expando<_WireEvent>(
+    'buoyNetworkWireStripped',
+  );
+
+  static _WireEvent _wireFor(NetworkCaptureEvent event) {
+    final cached = _wireCache[event];
+    if (cached != null) return cached;
+    _WireEvent entry;
+    try {
+      final json = event.toJson(stripLargeBodies: true);
+      entry = _WireEvent(json, approxJsonSize(json, snapshotEventsBudget).bytes);
+    } catch (_) {
+      // A body that blows up the size walk itself degrades to metadata rather
+      // than letting getSnapshot throw and taking the whole panel down.
+      final json = event.toJson(metadataOnly: true);
+      var bytes = 1024;
+      try {
+        bytes = approxJsonSize(json, snapshotEventsBudget).bytes;
+      } catch (_) {
+        // keep the nominal estimate
+      }
+      entry = _WireEvent(json, bytes);
+    }
+    _wireCache[event] = entry;
+    return entry;
+  }
+
+  static _WireEvent _strippedFor(NetworkCaptureEvent event) {
+    final cached = _strippedCache[event];
+    if (cached != null) return cached;
+    final json = event.toJson(metadataOnly: true);
+    final entry = _WireEvent(
+      json,
+      approxJsonSize(json, snapshotEventsBudget).bytes,
+    );
+    _strippedCache[event] = entry;
+    return entry;
+  }
+
+  /// Spend the snapshot budget newest-first. `_events` is newest-first already,
+  /// so this hands the developer full detail on what they are actually looking
+  /// at and degrades the tail rather than dropping the whole panel.
+  List<Object?> snapshot() {
+    final out = <Object?>[];
+    var spent = 0;
+    for (final event in _events) {
+      final full = _wireFor(event);
+      if (spent + full.bytes <= snapshotEventsBudget) {
+        out.add(full.json);
+        spent += full.bytes;
+      } else {
+        final lean = _strippedFor(event);
+        out.add(lean.json);
+        spent += lean.bytes;
+      }
+    }
+    return out;
+  }
 
   /// Newest-first, for the in-app network tool.
   List<NetworkCaptureEvent> get events => List.unmodifiable(_events);
@@ -231,6 +417,9 @@ class NetworkEventStore {
   void Function() subscribe(void Function() onChange) {
     _listeners.add(onChange);
     capturing = true;
+    // Flush BEFORE the first consumer reads, so its very first snapshot already
+    // carries boot traffic.
+    _flushBootBuffer();
     return () {
       _listeners.remove(onChange);
       if (_listeners.isEmpty) capturing = false;
@@ -342,8 +531,12 @@ OverrideRule? _readRuleDraft(Object? params) {
 /// field for field. Pins can't ride as flags on the events: a pin outlives the
 /// event that produced it (that is its whole purpose), so it has to be its own
 /// list.
+///
+/// v5: honest request/responseSize + explicit request/responseBodyOmitted
+/// flags, and a total snapshot budget so the list degrades instead of the whole
+/// panel being dropped at the emit layer.
 final networkSyncAdapter = ToolSyncAdapter(
-  version: 4,
+  version: 5,
   getSnapshot: () => {
     'events': NetworkEventStore.instance.snapshot(),
     // Saved snapshots ride on EVERY snapshot, so they go through the same body
@@ -526,6 +719,26 @@ final networkSyncAdapter = ToolSyncAdapter(
           .firstOrNull;
       if (rule == null) return null;
       return {'body': rule.body};
+    },
+
+    /// "Why is the list empty?" — the honest answer, instead of leaving the
+    /// caller to guess. The plausible guesses ("interception is broken on this
+    /// runtime") are usually wrong; the usual answer is that nothing is
+    /// holding capture open.
+    ///
+    /// RECORDING is what the caller actually wants to know, and it is driven
+    /// by the store's subscriber count — not by whether the interceptor is
+    /// installed. Those genuinely differ: an enabled override rule pins the
+    /// interceptor without anything writing to the event store.
+    'getCaptureStatus': (_) {
+      final subscribers = NetworkEventStore.instance.subscriberCount;
+      return {
+        'capturing': subscribers > 0,
+        'subscribers': subscribers,
+        'interceptorInstalled': HttpOverrides.current is BuoyHttpOverrides,
+        'listenerCount': subscribers,
+        'eventCount': NetworkEventStore.instance.events.length,
+      };
     },
 
     /// Why isn't my rule firing? Reports the engine's own view of the world.

@@ -1,3 +1,9 @@
+## 0.3.1
+
+- Picks up the sync payload size guards across every bundled tool, plus
+  crash-visible console capture and boot-time network capture. See the individual
+  package changelogs.
+
 ## 0.3.0
 
 - The umbrella now bundles the full tool suite — network, storage, console, env,

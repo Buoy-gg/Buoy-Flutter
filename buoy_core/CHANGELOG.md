@@ -1,3 +1,19 @@
+## 0.3.2
+
+- Added `wire_budget.dart`: `approxJsonSize` / `isOverWireBudget` /
+  `isJsonEncodable` plus the emit budgets. Size guards measure with an
+  early-abort walk (O(limit), never O(payload)) and only reach for `jsonEncode`
+  when the walk saw something that could actually make it throw. Ports
+  `@buoy-gg/shared-ui`'s `wireBudget.ts`.
+- Added `crash_flush.dart`: `registerToolFlusher` / `flushToolSyncNow`, a
+  "push this tool's snapshot NOW" seam so a tool that knows the app is about to
+  die can bypass the 200ms snapshot throttle.
+- `BuoySyncClient` now drops an oversized snapshot (with a warn-once message)
+  instead of encoding it, returns an actionable error for an oversized action
+  result, and guards `socket.emit` so an unencodable payload can no longer
+  throw through app code. Previously an encode failure was silently turned into
+  the string `{}`.
+
 ## 0.3.1
 
 - Dial menu now ranks tools by recency-weighted usage (`dial_usage.dart`,

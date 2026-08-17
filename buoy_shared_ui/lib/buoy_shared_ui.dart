@@ -29,6 +29,18 @@ export 'src/storage/dev_tools_storage_keys.dart';
 // Icons — the Buoy Icon Format now lives in buoy_core (core's dial renders
 // tool icons, and nothing below core may depend on this package). Re-exported
 // here so every existing `package:buoy_shared_ui` importer keeps working.
+// Wire-size guards — every tool adapter needs them, but they live in buoy_core
+// so the emit layer (BuoySyncClient) can use them too. Re-exported here for the
+// same reason the icons are: tools import from this barrel.
+export 'package:buoy_core/buoy_core.dart'
+    show
+        SizeWalk,
+        approxJsonSize,
+        isJsonEncodable,
+        isOverWireBudget,
+        maxSnapshotEmitBytes,
+        maxActionResultBytes;
+
 export 'package:buoy_core/buoy_core.dart'
     show
         BuoyIcon,

@@ -3,7 +3,7 @@ description: >-
   Buoy storage inspector for Flutter — browse and monitor shared_preferences
   (plus optional secure/MMKV backends) in an in-app panel with filters and live
   streaming to Buoy Desktop.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 
@@ -16,8 +16,8 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  buoy_core: ^0.3.0
-  buoy_shared_ui: ^0.3.0
+  buoy_core: ^0.3.2
+  buoy_shared_ui: ^0.3.2
   shared_preferences: ^2.5.5
 
 dev_dependencies:

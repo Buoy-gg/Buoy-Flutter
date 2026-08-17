@@ -6,6 +6,10 @@
 /// so this produces a structural copy (Maps/Lists preserved so they stay
 /// expandable on the dashboard) with cycles broken.
 ///
+/// Strings are capped: a single `print` of a multi-MB payload (API dump,
+/// base64, …) would otherwise ride every snapshot uncapped and drop the whole
+/// console panel at the 2MB emit budget.
+///
 /// RN limits, mirrored exactly: MAX_DEPTH 6, MAX_ARRAY 100, MAX_KEYS 100.
 library;
 
@@ -13,9 +17,19 @@ const int _maxDepth = 6;
 const int _maxArray = 100;
 const int _maxKeys = 100;
 
+/// Max chars of one string on the wire / in the persisted buffer.
+const int snapshotStringLimit = 2 * 1024;
+
+/// RN `capString`.
+String capString(String value, [int limit = snapshotStringLimit]) {
+  if (value.length <= limit) return value;
+  return '${value.substring(0, limit)}… [${value.length - limit} more]';
+}
+
 Object? _sanitizeValue(Object? value, int depth, Set<Object> seen) {
   if (value == null) return null;
-  if (value is String || value is bool) return value;
+  if (value is String) return capString(value);
+  if (value is bool) return value;
   if (value is num) {
     // RN: non-finite numbers serialize to their String form.
     if (value is double && (value.isNaN || value.isInfinite)) {
@@ -83,6 +97,10 @@ Object? _sanitizeValue(Object? value, int depth, Set<Object> seen) {
 
 /// Deep-sanitize a list of console arguments into JSON-safe values.
 List<Object?> sanitizeArgs(List<Object?> args) {
-  final seen = <Object>{};
+  // IDENTITY, not equality — the cycle check asks "am I already inside THIS
+  // object", and `WeakSet` gives RN that for free. A `==`-keyed Set would call
+  // two equal-but-distinct maps in a list the same object and render the
+  // second as `[Circular]`, which is wrong and looks like data loss.
+  final seen = Set<Object>.identity();
   return [for (final arg in args) _sanitizeValue(arg, 0, seen)];
 }

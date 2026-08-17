@@ -3,7 +3,7 @@ description: >-
   Buoy route inspector for Flutter — a live navigation timeline, a jump-to-route
   sitemap, and a navigation-stack view for go_router apps, streaming to Buoy
   Desktop.
-version: 0.3.0
+version: 0.3.1
 homepage: https://buoy.gg
 repository: https://github.com/Buoy-gg/Buoy-Flutter
 
@@ -16,8 +16,8 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  buoy_core: ^0.3.0
-  buoy_shared_ui: ^0.3.0
+  buoy_core: ^0.3.2
+  buoy_shared_ui: ^0.3.2
   go_router: ^17.3.0
   shared_preferences: ^2.5.5
 

@@ -1,3 +1,10 @@
+## 0.3.1
+
+- Navigation params over 16KB are replaced on the snapshot with a
+  `__buoyOmitted` marker (pathname and segments stay inline). Apps routinely pass
+  whole objects through navigation, and 500 of those on every route change
+  exceeded the emit budget and dropped the Routes panel.
+
 ## 0.3.0
 
 - Initial release of the Buoy route inspector for Flutter.

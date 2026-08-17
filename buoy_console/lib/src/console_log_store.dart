@@ -16,6 +16,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:buoy_core/buoy_core.dart' show flushToolSyncNow;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,6 +63,7 @@ class ConsoleLogEntry {
     required this.timestamp,
     this.stack,
     this.origin,
+    this.fatal,
   });
 
   /// Monotonic id, unique per captured entry.
@@ -88,6 +90,12 @@ class ConsoleLogEntry {
   /// Where the log came from (function / call site).
   final LogOrigin? origin;
 
+  /// True when this entry came from a global error handler (an uncaught error),
+  /// not from a `print`/`debugPrint` call. The message carries a matching
+  /// `[FATAL]` / `[UNCAUGHT]` prefix. MCP `get_triage` reads this field to lead
+  /// with crashes.
+  final bool? fatal;
+
   /// Serialized entry — the wire shape RN's adapter emits (args sanitized).
   Map<String, Object?> toJson() => {
         'id': id,
@@ -98,6 +106,7 @@ class ConsoleLogEntry {
         'timestamp': timestamp,
         if (stack != null) 'stack': stack,
         if (origin != null) 'origin': origin!.toJson(),
+        if (fatal == true) 'fatal': true,
       };
 }
 
@@ -117,6 +126,28 @@ String _formatArg(Object? arg) {
 }
 
 String _formatArgs(List<Object?> args) => args.map(_formatArg).join(' ');
+
+/// Normalize a crash headline so the same error reported through two different
+/// seams produces the same key. Flutter's `FlutterErrorDetails.exceptionAsString`
+/// and a raw `error.toString()` of the same exception can differ by an already-
+/// applied type prefix, which would defeat de-duplication entirely.
+String _fatalHeadline(Object? error) {
+  final body = _formatArg(error).trim();
+  final name = error?.runtimeType.toString();
+  if (name == null || name.isEmpty) return body;
+  if (body.startsWith('$name: ')) return body;
+  // Only prefix when it adds information — a String error is its own headline.
+  return error is String ? body : '$name: $body';
+}
+
+/// Two independent seams report the same crash on some setups (a zone handler
+/// and `PlatformDispatcher.onError` can both see it). Suppress a repeat of the
+/// same headline within this window so a crash reads as ONE entry.
+const Duration _fatalDedupeWindow = Duration(milliseconds: 2000);
+
+/// Floor between opportunistic flushes, so an error storm can't flood the
+/// socket.
+const Duration _flushMinInterval = Duration(milliseconds: 150);
 
 /// Drop this package's own frames from a raw stack so the displayed trace starts
 /// at app code (RN cleanStack drops the Error header + interceptor frames).
@@ -182,11 +213,102 @@ class ConsoleLogStore {
       stack: keepStack ? _cleanStack(errorStack ?? rawStack) : null,
       origin: origin,
     );
+    _append(entry);
+    _emit();
+    _scheduleSave();
+    // Errors are the entries most likely to be the last thing an app ever logs,
+    // so they get pushed to any dashboard immediately instead of waiting on the
+    // throttle a dying app will never run. Rate-limited; ordinary logs still
+    // ride the normal throttled path.
+    if (entry.level == 'error') _flushConsoleSyncNow();
+  }
+
+  void _append(ConsoleLogEntry entry) {
     _entries = _entries.length >= kConsoleMaxEntries
         ? [..._entries.sublist(_entries.length - kConsoleMaxEntries + 1), entry]
         : [..._entries, entry];
+  }
+
+  /// Record an uncaught error from one of the global error handlers.
+  ///
+  /// [label] is the tag that leads BOTH the args and the pre-rendered message:
+  /// the DevTools-style row renders from args, so this is what makes the tag
+  /// visible in the UI — exactly like `print('[FATAL]', err)`.
+  ///
+  /// [fatal] marks the entry as coming from a global handler rather than a
+  /// print call. `[RENDER ERROR]` deliberately does NOT set it: Flutter fires
+  /// `FlutterError.onError` for a build error that `ErrorWidget` then recovers
+  /// from, with no way here to tell that apart from a real crash — and claiming
+  /// a healthy app crashed is worse than under-claiming. The stack, which is
+  /// the useful part, is reported either way.
+  void recordFatal(
+    String label,
+    Object? error, {
+    StackTrace? stack,
+    bool fatal = true,
+  }) {
+    final headline = _fatalHeadline(error);
+    final duplicate = _isDuplicateFatal('$label $headline');
+    final entry = ConsoleLogEntry(
+      id: _nextId++,
+      method: 'error',
+      level: 'error',
+      args: [label, error],
+      message: '$label $headline',
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+      // The error's OWN stack — the crash site, not this handler's call site.
+      stack: _cleanStack(stack),
+      fatal: fatal ? true : null,
+    );
+    _append(entry);
     _emit();
     _scheduleSave();
+    // A repeat within the dedupe window is still RECORDED (two crashes are two
+    // crashes); it just doesn't earn another forced push to the dashboard.
+    if (!duplicate) _flushConsoleSyncNow(force: true);
+  }
+
+  String _lastFatalKey = '';
+  int _lastFatalAt = 0;
+
+  /// Has this crash already been recorded moments ago?
+  ///
+  /// Only ever used to suppress a duplicate PUSH to the dashboard — never to
+  /// drop an entry. Two different widgets crashing with the same message inside
+  /// the window are two crashes, and a tool whose pitch is "the app's last
+  /// words" must not silently throw one away.
+  bool _isDuplicateFatal(String key) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (key == _lastFatalKey &&
+        now - _lastFatalAt < _fatalDedupeWindow.inMilliseconds) {
+      return true;
+    }
+    _lastFatalKey = key;
+    _lastFatalAt = now;
+    return false;
+  }
+
+  int _lastFlushAt = 0;
+
+  /// Clear the crash de-dupe and flush rate-limit state. The store is a
+  /// singleton, so without this one test's fatal silently rate-limits the
+  /// next one's push and the assertion fails for the wrong reason.
+  @visibleForTesting
+  void resetFlushStateForTest() {
+    _lastFatalKey = '';
+    _lastFatalAt = 0;
+    _lastFlushAt = 0;
+  }
+
+  /// Push the console snapshot through the sync bridge NOW, bypassing its
+  /// 200ms throttle — the throttle a crashing app never gets to run.
+  void _flushConsoleSyncNow({bool force = false}) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // A fatal is the app's last word — it always goes out, rate limit or not.
+    if (!force && now - _lastFlushAt < _flushMinInterval.inMilliseconds) return;
+    _lastFlushAt = now;
+    // Best-effort: a crash path must never crash.
+    flushToolSyncNow('console');
   }
 
   // ── Subscription ────────────────────────────────────────────────────────
