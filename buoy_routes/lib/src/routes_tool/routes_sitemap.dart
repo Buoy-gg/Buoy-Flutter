@@ -48,7 +48,7 @@ class _RoutesSitemapState extends State<RoutesSitemap> {
   bool _isSearching = false;
   bool _isRefreshing = false;
   final _searchController = TextEditingController();
-  Set<String> _expandedGroups = {'Root Routes', 'Dynamic Routes'};
+  Set<String> _expandedGroups = {'Static Routes', 'Dynamic Routes'};
 
   List<RouteInfo> _routes = const [];
 

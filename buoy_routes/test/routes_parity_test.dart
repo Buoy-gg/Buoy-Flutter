@@ -180,7 +180,7 @@ void main() {
       expect(stats.static, 1);
 
       final groups = RouteParser.organizeRoutes(routes);
-      expect(groups.any((g) => g.title == 'Root Routes'), isTrue);
+      expect(groups.any((g) => g.title == 'Static Routes'), isTrue);
       expect(groups.any((g) => g.title == 'Dynamic Routes'), isTrue);
     });
   });

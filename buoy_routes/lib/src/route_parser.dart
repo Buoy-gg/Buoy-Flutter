@@ -235,9 +235,12 @@ class RouteParser {
     final groups = <RouteGroup>[];
     final flat = flatten(routes);
 
-    final rootRoutes = routes
+    // Flatten before grouping, like every other bucket — static/index screens
+    // nested under layouts must still be listed, or the stats header counts
+    // routes the list never shows. Mirrors the RN fix.
+    final staticRoutes = flat
         .where((r) =>
-            r.depth == 0 && r.type != RouteType.dynamic && r.type != RouteType.layout)
+            r.type == RouteType.static || r.type == RouteType.indexRoute)
         .toList();
     final dynamicRoutes = flat
         .where((r) => r.type == RouteType.dynamic || r.type == RouteType.catchAll)
@@ -245,8 +248,8 @@ class RouteParser {
     final layoutRoutes = flat.where((r) => r.type == RouteType.layout).toList();
     final groupedRoutes = flat.where((r) => r.type == RouteType.group).toList();
 
-    if (rootRoutes.isNotEmpty) {
-      groups.add(RouteGroup(title: 'Root Routes', routes: rootRoutes));
+    if (staticRoutes.isNotEmpty) {
+      groups.add(RouteGroup(title: 'Static Routes', routes: staticRoutes));
     }
     if (dynamicRoutes.isNotEmpty) {
       groups.add(RouteGroup(

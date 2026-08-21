@@ -1373,9 +1373,11 @@ const BuoyIconData pinGlyph = BuoyIconData(
   color: Color(0xFFE0E0E0),
   bgColor: Color(0xFF0A0A0F),
   elements: <BifElement>[
-    BifCircle(cx: 0.0, cy: -4.0, r: 4.0, border: true, borderWidth: 2.0),
-    BifLine(x1: 0.0, y1: 0.0, x2: 0.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
-    BifLine(x1: -5.0, y1: -8.0, x2: 5.0, y2: -8.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -9.03, y1: 9.03, x2: -3.82, y2: 3.82, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -7.6, y1: -1.19, x2: 1.19, y2: 7.6, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -6.83, y1: -1.46, x2: -0.57, y2: -3.17, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 1.46, y1: 6.83, x2: 3.17, y2: 0.57, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifRect(x: -0.85, y: -7.6, width: 11.38, height: 5.52, border: true, borderWidth: 2.0, borderRadius: 2.07, rotation: -45.0, rotateFromCenter: true),
   ],
 );
 
