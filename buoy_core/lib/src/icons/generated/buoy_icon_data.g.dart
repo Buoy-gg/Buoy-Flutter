@@ -70,6 +70,26 @@ const BuoyIconData consoleIconData = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// copilot
+// ----------------------------------------------------------------------
+
+/// Brand color for the copilot icon (RN: `COPILOT_ICON_COLOR`).
+const Color kCopilotIconColor = Color(0xFF7DD3FC);
+
+const BuoyIconData copilotIconData = BuoyIconData(
+  color: kCopilotIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -10.0, y: -9.5, width: 20.0, height: 15.0, fill: BifPaint.theme, borderRadius: 4.5),
+    BifTriangle(x: -6.5, y: 5.2, size: 5.0, direction: BifDirection.down, fill: BifPaint.theme),
+    BifCircle(cx: -4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 0.0, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 8.2, cy: -9.4, r: 2.8, fill: BifPaint(BifPaintSource.theme, opacity: 0.7)),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // env
 // ----------------------------------------------------------------------
 
@@ -514,6 +534,31 @@ const BuoyIconData routesIconData = BuoyIconData(
     BifRect(x: 2.846049894151541, y: 10.0, width: 6.0, height: 4.0, fill: BifPaint.background),
     BifLine(x1: -0.31622776601683794, y1: 6.324555320336758, x2: 7.58946638440411, y2: 6.324555320336758, stroke: BifPaint.background, strokeWidth: 2.3),
     BifRect(x: -2.5298221281347035, y: 7.5, width: 7.273238618387272, height: 2.5, fill: BifPaint.theme),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// scenarios
+// ----------------------------------------------------------------------
+
+/// Brand color for the scenarios icon (RN: `SCENARIOS_ICON_COLOR`).
+const Color kScenariosIconColor = Color(0xFFF43F5E);
+
+const BuoyIconData scenariosIconData = BuoyIconData(
+  color: kScenariosIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -9.6, y: -9.2, width: 19.2, height: 20.4, fill: BifPaint.theme, borderRadius: 2.8),
+    BifRect(x: -3.6, y: -11.6, width: 7.2, height: 3.8, fill: BifPaint.theme, borderRadius: 1.5),
+    BifLine(x1: -7.0, y1: -3.6, x2: -5.8, y2: -2.2, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifLine(x1: -5.8, y1: -2.2, x2: -3.4, y2: -5.7, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifRect(x: -1.7, y: -5.0, width: 8.9, height: 2.4, fill: BifPaint.background, borderRadius: 1.2),
+    BifLine(x1: -7.0, y1: 1.8, x2: -5.8, y2: 3.2, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifLine(x1: -5.8, y1: 3.2, x2: -3.4, y2: -0.3, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifRect(x: -1.7, y: 0.4, width: 8.9, height: 2.4, fill: BifPaint.background, borderRadius: 1.2),
+    BifLine(x1: -7.0, y1: 7.2, x2: -5.8, y2: 8.6, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifLine(x1: -5.8, y1: 8.6, x2: -3.4, y2: 5.1, stroke: BifPaint.background, strokeWidth: 1.6),
+    BifRect(x: -1.7, y: 5.8, width: 8.9, height: 2.4, fill: BifPaint.background, borderRadius: 1.2),
   ],
 );
 
@@ -1627,6 +1672,7 @@ const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
   'assets': assetsIconData,
   'benchmark': benchmarkIconData,
   'console': consoleIconData,
+  'copilot': copilotIconData,
   'env': envIconData,
   'events': eventsIconData,
   'highlight': highlightIconData,
@@ -1644,6 +1690,7 @@ const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
   'route-pin': routePinIconData,
   'route-two-pins': routeTwoPinsIconData,
   'routes': routesIconData,
+  'scenarios': scenariosIconData,
   'sentry': sentryIconData,
   'storage': storageIconData,
   'time-machine': timeMachineIconData,
