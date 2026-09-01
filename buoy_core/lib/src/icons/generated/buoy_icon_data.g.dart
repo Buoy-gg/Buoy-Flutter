@@ -51,6 +51,27 @@ const BuoyIconData benchmarkIconData = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// camera
+// ----------------------------------------------------------------------
+
+/// Brand color for the camera icon (RN: `CAMERA_ICON_COLOR`).
+const Color kCameraIconColor = Color(0xFFF472B6);
+
+const BuoyIconData cameraIconData = BuoyIconData(
+  color: kCameraIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -3.4, y: -9.6, width: 6.8, height: 3.6, fill: BifPaint.theme, borderRadius: 1.5, opacity: 0.5),
+    BifRect(x: -10.0, y: -7.0, width: 20.0, height: 15.0, fill: BifPaint.theme, borderRadius: 4.2, opacity: 0.08),
+    BifRect(x: -10.0, y: -7.0, width: 20.0, height: 15.0, border: true, borderWidth: 1.5, borderRadius: 4.2, opacity: 0.9, glow: true, glowRadius: 3.0),
+    BifCircle(cx: 0.0, cy: 0.6, r: 5.0, border: true, borderWidth: 1.5, opacity: 0.85),
+    BifCircle(cx: 0.0, cy: 0.6, r: 2.4, fill: BifPaint.theme, opacity: 0.9, glow: true, glowRadius: 2.5),
+    BifCircle(cx: -1.15, cy: -0.45, r: 0.72, fill: BifPaint.background, opacity: 0.9),
+    BifCircle(cx: 6.6, cy: -3.6, r: 1.0, fill: BifPaint.theme, opacity: 0.55),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // console
 // ----------------------------------------------------------------------
 
@@ -1671,6 +1692,7 @@ const BuoyIconData zapGlyph = BuoyIconData(
 const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
   'assets': assetsIconData,
   'benchmark': benchmarkIconData,
+  'camera': cameraIconData,
   'console': consoleIconData,
   'copilot': copilotIconData,
   'env': envIconData,
