@@ -3,6 +3,7 @@ import 'package:buoy_riverpod/src/riverpod_serialize.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show AsyncValue;
 import 'package:buoy_riverpod/src/riverpod_state_store.dart';
 import 'package:buoy_riverpod/src/riverpod_types.dart';
+import 'package:buoy_core/buoy_core.dart' show isOverWireBudget;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -213,8 +214,51 @@ void main() {
       expect(riverpodStateStore.getChanges(), isEmpty);
     });
 
-    test('adapter version is 1 (jotai parity)', () {
-      expect(riverpodSyncAdapter.version, 1);
+    test('adapter version is 2 (jotai parity)', () {
+      expect(riverpodSyncAdapter.version, 2);
+    });
+
+    test('v2 snapshot is value-free; getChangeDetail / getAtomValue fetch', () {
+      riverpodStateStore.clearChanges();
+      riverpodStateStore.recordInitial('counter', 1);
+      riverpodStateStore.recordUpdate('counter', 1, 2);
+      final snap = riverpodSyncAdapter.getSnapshot() as Map<String, Object?>;
+      final changes = snap['changes'] as List;
+      final change = changes.first as Map;
+      expect((change['prevValue'] as Map)['__buoyValueOnDevice'], isTrue);
+      expect((change['nextValue'] as Map)['__buoyValueOnDevice'], isTrue);
+      // Small current values stay inline on the atoms list.
+      final atoms = snap['atoms'] as List;
+      expect((atoms.first as Map)['currentValue'], 2);
+
+      final detail = riverpodSyncAdapter.actions['getChangeDetail']!(
+        {'id': change['id']},
+      ) as Map;
+      expect(detail['found'], isTrue);
+      expect(detail['prevValue'], 1);
+      expect(detail['nextValue'], 2);
+      expect(
+        (riverpodSyncAdapter.actions['getChangeDetail']!({'id': 'nope'}) as Map)['found'],
+        isFalse,
+      );
+
+      final value = riverpodSyncAdapter.actions['getAtomValue']!(
+        {'label': 'counter'},
+      ) as Map;
+      expect(value['currentValue'], 2);
+    });
+
+    test('a huge currentValue is bounded by the serializer, so it stays inline', () {
+      riverpodStateStore.clearChanges();
+      riverpodStateStore.recordInitial('big', List.filled(20000, 'x'));
+      final snap = riverpodSyncAdapter.getSnapshot() as Map<String, Object?>;
+      final atoms = (snap['atoms'] as List).cast<Map>();
+      final big = atoms.firstWhere((a) => a['label'] == 'big');
+      // serializeValue truncates to _maxItems (+ a "… N more" tail), which is
+      // well under the 16KB wire cap — the on-device marker is the backstop
+      // for values the serializer cannot bound.
+      expect(big['currentValue'], isA<List>());
+      expect(isOverWireBudget(big['currentValue'], 16 * 1024), isFalse);
     });
   });
 

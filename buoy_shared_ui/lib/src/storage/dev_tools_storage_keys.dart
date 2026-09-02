@@ -149,6 +149,11 @@ class EventsKeys {
   String modal() => '${root()}_modal';
   String enabledSources() => '${root()}_enabled_sources';
   String isCapturing() => '${root()}_is_capturing';
+
+  /// The moment capture was switched off (ms epoch), cleared on resume — kept
+  /// beside the capturing flag so a relaunch while paused keeps hiding from
+  /// the ORIGINAL pause press (RN `events.pausedAt`).
+  String pausedAt() => '${root()}_paused_at';
   String copySettings() => '${root()}_copy_settings';
 }
 

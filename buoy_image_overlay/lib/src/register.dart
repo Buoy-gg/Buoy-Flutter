@@ -12,6 +12,7 @@
 library;
 
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'image_overlay_standalone.dart';
@@ -24,6 +25,8 @@ const Color kImageOverlayColor = Color(0xFFA855F7);
 
 /// Register the image-overlay tool + its overlay layer. Idempotent.
 void registerBuoyImageOverlay() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

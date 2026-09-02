@@ -159,6 +159,9 @@ AutomationConfig sanitizeAutomationConfig(Object? value) {
     captureRenders: v['captureRenders'] is bool
         ? v['captureRenders'] as bool
         : d.captureRenders,
+    discardWarmupCase: v['discardWarmupCase'] is bool
+        ? v['discardWarmupCase'] as bool
+        : d.discardWarmupCase,
   );
 }
 
@@ -197,8 +200,12 @@ class AutomationConfigStore {
   }
 
   Future<void> save(AutomationConfig next) async {
-    _current = sanitizeAutomationConfig(next.toJson());
-    _notify();
+    final sanitized = sanitizeAutomationConfig(next.toJson());
+    // RN: notify only on a real change — every keystroke in the editor
+    // saves, and a no-op notify re-renders every subscriber for nothing.
+    final changed = jsonEncode(sanitized.toJson()) != jsonEncode(_current.toJson());
+    _current = sanitized;
+    if (changed) _notify();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(

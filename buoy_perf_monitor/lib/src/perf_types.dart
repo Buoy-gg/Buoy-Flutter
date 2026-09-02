@@ -508,6 +508,7 @@ class AutomationConfig {
     this.discardWarmupRuns = 0,
     this.shuffleCases = true,
     this.captureRenders = true,
+    this.discardWarmupCase = true,
   });
 
   final String targetRoute;
@@ -528,6 +529,12 @@ class AutomationConfig {
   final int discardWarmupRuns;
   final bool shuffleCases;
 
+  /// RN `discardWarmupCase` (default on): run the first case ONCE, unrecorded
+  /// in aggregates, before the batch proper. The first case of a batch pays
+  /// the cold caches / JIT / image-decode cost that no later case pays, so
+  /// without this the shuffled first slot is systematically slower.
+  final bool discardWarmupCase;
+
   /// Accepted-and-ignored (no Flutter render-commit profiler yet).
   final bool captureRenders;
 
@@ -547,6 +554,7 @@ class AutomationConfig {
     int? discardWarmupRuns,
     bool? shuffleCases,
     bool? captureRenders,
+    bool? discardWarmupCase,
   }) =>
       AutomationConfig(
         targetRoute: targetRoute ?? this.targetRoute,
@@ -565,6 +573,7 @@ class AutomationConfig {
         discardWarmupRuns: discardWarmupRuns ?? this.discardWarmupRuns,
         shuffleCases: shuffleCases ?? this.shuffleCases,
         captureRenders: captureRenders ?? this.captureRenders,
+        discardWarmupCase: discardWarmupCase ?? this.discardWarmupCase,
       );
 
   /// Full wire shape. [includeCases] false mirrors the RN sync adapter, which
@@ -585,6 +594,7 @@ class AutomationConfig {
         'discardWarmupRuns': discardWarmupRuns,
         'shuffleCases': shuffleCases,
         'captureRenders': captureRenders,
+        'discardWarmupCase': discardWarmupCase,
       };
 }
 

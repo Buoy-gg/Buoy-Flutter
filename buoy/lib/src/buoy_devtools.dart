@@ -32,7 +32,7 @@ class BuoyDevTools extends StatefulWidget {
   const BuoyDevTools({
     super.key,
     this.tools = const [],
-    this.deviceName = 'Flutter App',
+    this.deviceName,
     this.deviceId,
     this.socketUrl,
     this.licenseKey,
@@ -40,7 +40,8 @@ class BuoyDevTools extends StatefulWidget {
   });
 
   final List<core.BuoyTool> tools;
-  final String deviceName;
+  /// Label in Buoy Desktop / MCP. Default: `Flutter App (<platform> · <last 4 of the id>)`.
+  final String? deviceName;
   final String? deviceId;
   final String? socketUrl;
   final String? licenseKey;

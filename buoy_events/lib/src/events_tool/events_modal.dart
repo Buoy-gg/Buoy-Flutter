@@ -68,6 +68,37 @@ class _EventsModalState extends State<EventsModal> {
   bool _isCapturing = true;
   bool _restored = false;
 
+  /// Wall-clock windows during which capture was OFF (RN `pausedWindowsRef`).
+  /// Releasing this consumer's source refs is not enough to keep the list
+  /// still: a watching dashboard legitimately keeps capturing into the
+  /// SHARED store while the device is paused. So events stamped inside a
+  /// paused window stay hidden — and stay hidden AFTER resume too: the user
+  /// was told the tool wasn't listening, and a resume that surfaces a backlog
+  /// of "unheard" events reads as capture-while-off (pause → clear → tap
+  /// around → resume must come back BLANK). The open window's start is
+  /// persisted beside the capturing flag, so a relaunch while paused keeps
+  /// hiding from the ORIGINAL pause press, not from the reopen.
+  int? _pausedAt;
+  final List<(int, int)> _pausedWindows = [];
+
+  bool _isInPausedWindow(UnifiedEvent e) {
+    final t = e.timestamp;
+    final open = _pausedAt;
+    if (open != null && t >= open) return true;
+    for (final (start, end) in _pausedWindows) {
+      if (t >= start && t <= end) return true;
+    }
+    return false;
+  }
+
+  /// Declare this consumer's desired sources to the store's ledger — the
+  /// ONE place refs are acquired or released for the on-device modal.
+  void _declareSources() {
+    unifiedEventStore.setLocalEnabledSources(
+      _isCapturing ? _enabledSources : const <String>[],
+    );
+  }
+
   UnifiedEvent? _selectedEvent;
 
   bool _isSearchActive = false;
@@ -124,13 +155,9 @@ class _EventsModalState extends State<EventsModal> {
     _registryUnsub?.call();
     IgnoredPatternsStore.instance.removeListener(_onExternalChange);
     // Release this consumer's source subscriptions (ref-counted — a watching
-    // dashboard keeps its own).
-    if (_isCapturing) {
-      for (final s in _enabledSources) {
-        final id = eventSourceToDiscoveryId[s];
-        if (id != null) unifiedEventStore.unsubscribeFromSource(id);
-      }
-    }
+    // dashboard keeps its own). Through the ledger, so exactly what this
+    // consumer holds is released — no more, no less.
+    unifiedEventStore.setLocalEnabledSources(const <String>[]);
     _searchController.dispose();
     _searchFocus.dispose();
     MinuteTicker.instance.release();
@@ -174,18 +201,27 @@ class _EventsModalState extends State<EventsModal> {
 
     final capturingRaw = prefs.getString(_keys.isCapturing());
     final shouldCapture = capturingRaw == null ? true : capturingRaw == 'true';
+    // Still paused from a previous session: keep hiding from that press.
+    final pausedRaw = prefs.getString(_keys.pausedAt());
+    final pausedAt = !shouldCapture && pausedRaw != null
+        ? int.tryParse(pausedRaw)
+        : null;
 
     setState(() {
       _enabledSources = toEnable;
       _isCapturing = shouldCapture;
+      _pausedAt = pausedAt;
       _restored = true;
     });
+    _declareSources();
+  }
 
-    if (shouldCapture) {
-      for (final s in toEnable) {
-        final id = eventSourceToDiscoveryId[s];
-        if (id != null) unifiedEventStore.subscribeToSource(id);
-      }
+  Future<void> _savePausedAt(int? pausedAt) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (pausedAt == null) {
+      await prefs.remove(_keys.pausedAt());
+    } else {
+      await prefs.setString(_keys.pausedAt(), pausedAt.toString());
     }
   }
 
@@ -257,6 +293,7 @@ class _EventsModalState extends State<EventsModal> {
             allowed.contains(e.source) &&
             !_isBuoyInternal(e) &&
             !_isNetworkIgnored(e) &&
+            !_isInPausedWindow(e) &&
             (query.isEmpty || _matchesSearch(e, query)))
         .toList();
   }
@@ -295,39 +332,36 @@ class _EventsModalState extends State<EventsModal> {
 
   void _toggleSource(String source) {
     setState(() {
-      final id = eventSourceToDiscoveryId[source];
       if (_enabledSources.contains(source)) {
         _enabledSources = {..._enabledSources}..remove(source);
-        if (id != null) unifiedEventStore.unsubscribeFromSource(id);
       } else {
         _enabledSources = {..._enabledSources, source};
-        if (_isCapturing && id != null) {
-          unifiedEventStore.subscribeToSource(id);
-        }
       }
     });
+    _declareSources();
     if (_restored) {
       _save(_keys.enabledSources(), jsonEncode(_enabledSources.toList()));
     }
   }
 
   void _toggleCapturing() {
+    final now = DateTime.now().millisecondsSinceEpoch;
     setState(() {
       if (_isCapturing) {
-        for (final s in _enabledSources) {
-          final id = eventSourceToDiscoveryId[s];
-          if (id != null) unifiedEventStore.unsubscribeFromSource(id);
-        }
         _isCapturing = false;
+        _pausedAt = now;
       } else {
-        for (final s in _enabledSources) {
-          final id = eventSourceToDiscoveryId[s];
-          if (id != null) unifiedEventStore.subscribeToSource(id);
-        }
+        final open = _pausedAt;
+        if (open != null) _pausedWindows.add((open, now));
+        _pausedAt = null;
         _isCapturing = true;
       }
     });
-    if (_restored) _save(_keys.isCapturing(), _isCapturing.toString());
+    _declareSources();
+    if (_restored) {
+      _save(_keys.isCapturing(), _isCapturing.toString());
+      _savePausedAt(_pausedAt);
+    }
   }
 
   String _exportAll() => generateExport(_filteredEvents, kDefaultCopySettings);

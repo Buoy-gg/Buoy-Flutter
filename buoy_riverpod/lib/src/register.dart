@@ -26,6 +26,8 @@ bool _registered = false;
 const int riverpodIconColor = 0xFF6C47FF;
 
 void registerBuoyRiverpod() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

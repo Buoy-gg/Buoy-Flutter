@@ -37,6 +37,9 @@ class BuoyStorageKeys {
   static const devToolsSettings = '@react_buoy_dev_tools_settings';
   static const minimizedStackExpanded = '@react_buoy_minimized_stack_expanded';
 
+  /// The per-install tail of the default sync deviceId — see device_identity.dart.
+  static const syncDeviceId = '@react_buoy_sync_device_id';
+
   /// Which tools were open (and whether minimized) at last close — RN AppHost's
   /// `@react_buoy_open_apps`. Per-tool modal geometry lives under each tool's
   /// own JsModal persistenceKey, not here.

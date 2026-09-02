@@ -5,6 +5,11 @@
 /// RN numerics: padH 16 / padTop 12, nav buttons minWidth 100 radius 6, counter
 /// 14/700 uppercase monospace, subtitle 11 secondary. RN's `useSafeAreaInsets`
 /// bottom inset → `MediaQuery.paddingOf(context).bottom`.
+///
+/// `variant` (RN, default night): the night bar is near-black glass
+/// (rgba(5,5,5,0.92)) with a hairline top border; buttons are the
+/// `night.button` plate at radius 15 with accent-ink labels/chevrons, and the
+/// counter uses the night text hierarchy. `classic` is the macOS look.
 library;
 
 import 'package:flutter/material.dart';
@@ -24,7 +29,11 @@ class EventStepperFooter extends StatelessWidget {
     this.subtitle,
     this.absolute = false,
     this.applySafeAreaInset = true,
+    this.variant = JsModalVariant.night,
   });
+
+  /// Host tool's chrome variant — night restyles the bar to the night theme.
+  final JsModalVariant variant;
 
   final int currentIndex;
   final int totalItems;
@@ -39,6 +48,7 @@ class EventStepperFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     if (totalItems <= 1) return const SizedBox.shrink();
 
+    final night = variant == JsModalVariant.night;
     final isFirst = currentIndex == 0;
     final isLast = currentIndex == totalItems - 1;
     final insetBottom =
@@ -46,10 +56,16 @@ class EventStepperFooter extends StatelessWidget {
 
     final footer = Container(
       padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12 + insetBottom),
-      decoration: const BoxDecoration(
-        color: MacOSColors.backgroundBase,
-        border: Border(top: BorderSide(color: MacOSColors.borderDefault)),
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: night
+            ? const Color.fromRGBO(5, 5, 5, 0.92)
+            : MacOSColors.backgroundBase,
+        border: Border(
+          top: BorderSide(
+            color: night ? NightColor.border : MacOSColors.borderDefault,
+          ),
+        ),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
             offset: Offset(0, -2),
@@ -66,25 +82,28 @@ class EventStepperFooter extends StatelessWidget {
             iconLeading: true,
             enabled: !isFirst,
             onTap: onPrevious,
+            night: night,
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 '${itemLabel.toUpperCase()} ${currentIndex + 1} OF $totalItems',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: MacOSColors.textPrimary,
+                    color: night ? NightColor.text : MacOSColors.textPrimary,
                     fontFamily: 'monospace'),
               ),
               if (subtitle != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11,
-                          color: MacOSColors.textSecondary,
+                          color: night
+                              ? NightColor.textSecondary
+                              : MacOSColors.textSecondary,
                           fontFamily: 'monospace')),
                 ),
             ],
@@ -95,6 +114,7 @@ class EventStepperFooter extends StatelessWidget {
             iconLeading: false,
             enabled: !isLast,
             onTap: onNext,
+            night: night,
           ),
         ],
       ),
@@ -110,8 +130,12 @@ class EventStepperFooter extends StatelessWidget {
     required bool iconLeading,
     required bool enabled,
     required VoidCallback onTap,
+    required bool night,
   }) {
-    final color = enabled ? MacOSColors.textPrimary : MacOSColors.textMuted;
+    // Night buttons are the plate-with-accent-label style — chevrons match.
+    final color = night
+        ? (enabled ? NightColor.accent : NightColor.textTertiary)
+        : (enabled ? MacOSColors.textPrimary : MacOSColors.textMuted);
     final iconWidget = BuoyGlyph(icon, size: 20, color: color);
     final text = Text(label.toUpperCase(),
         style: TextStyle(
@@ -123,8 +147,8 @@ class EventStepperFooter extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 100),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: MacOSColors.backgroundCard,
-        borderRadius: BorderRadius.circular(6),
+        color: night ? NightColor.button : MacOSColors.backgroundCard,
+        borderRadius: BorderRadius.circular(night ? 15 : 6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

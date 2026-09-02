@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:buoy_core/buoy_core.dart';
 
-import '../macos_colors.dart';
 
 /// Ports packages/shared/src/ui/components/CompactRow.tsx — the unified
 /// expandable list row (status dot + label · primary/secondary text · right
@@ -62,7 +61,7 @@ class CompactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final glow = expandedGlowColor ?? BuoyColors.primary;
+    final glow = expandedGlowColor ?? NightColor.accent;
 
     final header = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -108,7 +107,7 @@ class CompactRow extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 10,
-                              color: BuoyColors.textMuted,
+                              color: NightColor.textTertiary,
                             ),
                           ),
                         ),
@@ -136,7 +135,7 @@ class CompactRow extends StatelessWidget {
                     fontFamily: 'monospace',
                     fontSize: 12,
                     height: 16 / 12,
-                    color: BuoyColors.text,
+                    color: NightColor.text,
                   ),
                 ),
                 if (!isExpanded &&
@@ -153,7 +152,7 @@ class CompactRow extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 10,
-                                color: BuoyColors.textMuted,
+                                color: NightColor.textTertiary,
                               ),
                             ),
                           ),
@@ -183,26 +182,32 @@ class CompactRow extends StatelessWidget {
       scale: isExpanded ? 1.02 : (isSelected ? 1.01 : 1),
       duration: const Duration(milliseconds: 150),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        // RN expandedRowActive adds paddingBottom 16.
+        padding: EdgeInsets.fromLTRB(12, 12, 12, isExpanded ? 16 : 12),
         decoration: BoxDecoration(
+          // Translucent night scrim (RN rgba(12,12,12,0.9)) so the shared
+          // ToolBackground reads through — in step with DevToolsCard.
           color: isSelected
-              ? BuoyColors.primary.hexAlpha(0x15)
-              : BuoyColors.card,
+              ? NightColor.accentSoft
+              : const Color.fromRGBO(12, 12, 12, 0.9),
           borderRadius: BorderRadius.circular(8),
+          // RN: night.border with borderBottomColor night.separator (a
+          // desktop-only distinction; see DevToolsCard for why the Flutter
+          // outline is uniform).
           border: Border.all(
             width: isExpanded ? 2 : 1,
             color: isExpanded
                 ? glow
                 : (isSelected
-                    ? BuoyColors.primary.hexAlpha(0x50)
-                    : BuoyColors.border.hexAlpha(0x40)),
+                    ? NightColor.accentBorderStrong
+                    : NightColor.border),
           ),
           boxShadow: isExpanded
               ? [BoxShadow(color: glow.withValues(alpha: 0.8), blurRadius: 20)]
               : (isSelected
                   ? [
                       BoxShadow(
-                        color: BuoyColors.primary.withValues(alpha: 0.1),
+                        color: NightColor.accent.withValues(alpha: 0.1),
                         blurRadius: 8,
                       ),
                     ]
@@ -218,8 +223,8 @@ class CompactRow extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 8, left: 24),
                 padding: const EdgeInsets.only(top: 8),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: BuoyColors.border.hexAlpha(0x20)),
+                  border: const Border(
+                    top: BorderSide(color: NightColor.separator),
                   ),
                 ),
                 child: expandedContent,
@@ -229,8 +234,11 @@ class CompactRow extends StatelessWidget {
       ),
     );
 
+    // RN rowWrapperExpanded: the expanded card scales to 1.02 and grows a 2px
+    // glow border, which eats the 3px resting margin — without extra room its
+    // bottom edge sits on the next card.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: isExpanded ? 12 : 3),
       child: card,
     );
   }
@@ -269,7 +277,7 @@ class CompactRow extends StatelessWidget {
                   DefaultTextStyle.merge(
                     style: const TextStyle(
                       fontSize: 9,
-                      color: BuoyColors.textMuted,
+                      color: NightColor.textTertiary,
                       fontFamily: 'monospace',
                     ),
                     child: bottom,
@@ -281,7 +289,7 @@ class CompactRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 9,
-                      color: BuoyColors.textMuted,
+                      color: NightColor.textTertiary,
                       fontFamily: 'monospace',
                     ),
                   ),
@@ -293,7 +301,7 @@ class CompactRow extends StatelessWidget {
             child: BuoyGlyph(
               isExpanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
               size: 14,
-              color: BuoyColors.textMuted,
+              color: NightColor.textTertiary,
             ),
           ),
       ],

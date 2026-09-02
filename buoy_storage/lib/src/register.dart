@@ -25,6 +25,8 @@ bool _registered = false;
 /// Events monitor is on (RN backpressure parity: "subscribing starts the
 /// lifecycle").
 void registerBuoyStorage() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 
@@ -63,8 +65,16 @@ EventSourceAdapter _storageEventSource() => EventSourceAdapter(
         EventSourceIds.storageAsync,
         EventSourceIds.storageMmkv,
       ],
-      subscribe: (emit) => StorageEventStore.instance
-          .onEvent((event) => emit(_transformStorageEvent(event))),
+      subscribe: (emit) => StorageEventStore.instance.onEvent((event) {
+        // The store's initial scan synthesizes a `setItem` for every key
+        // already on disk (so the STORAGE tool's state views include
+        // pre-existing keys). In a TIMELINE those read as dozens of writes
+        // that never happened — stamped with the scan moment, so the first
+        // subscribe after a quiet boot instantly "captured" ~60 events. This
+        // timeline reports what happens, not what exists. (RN parity.)
+        if (event.initialScan) return;
+        emit(_transformStorageEvent(event));
+      }),
       subscriberCount: () =>
           StorageEventStore.instance.getSubscriberCounts().total,
       rowBuilder: (context, event, onPress) {

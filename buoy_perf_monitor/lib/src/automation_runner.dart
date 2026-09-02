@@ -110,8 +110,9 @@ class AutomationRunnerImpl {
     _originRoute = origin.isEmpty ? null : origin;
 
     final batchId = _makeBatchId();
-    // Deterministic shuffle so a resume reconstructs the same order.
-    final orderedConfig = applyShuffle(config, batchId);
+    // Deterministic shuffle so a resume reconstructs the same order, then the
+    // (unrecorded) warmup run of whichever case landed first.
+    final orderedConfig = withBatchWarmup(applyShuffle(config, batchId));
 
     return _executeLoop(
       batchId: batchId,
@@ -200,7 +201,6 @@ class AutomationRunnerImpl {
   }) async {
     _cancelRequested = false;
     final total = config.cases.length;
-    final runTotal = clampRunsPerCase(config.runsPerCase);
     final coolDownMs = clampCoolDownMs(config.coolDownMs);
 
     for (var i = startIndex; i < total; i++) {
@@ -209,6 +209,11 @@ class AutomationRunnerImpl {
       final testCase = config.cases[i];
       final caseName =
           testCase.name.trim().isNotEmpty ? testCase.name.trim() : 'case ${i + 1}';
+      // The warmup case runs once; its report is tagged by name and skipped
+      // by aggregateLibrary (RN parity).
+      final runTotal = caseName == warmupCaseName
+          ? 1
+          : clampRunsPerCase(config.runsPerCase);
       final caseRoute = resolveCaseRoute(testCase, config.targetRoute);
       final caseId = _caseIdFor(batchId, i);
 
@@ -742,6 +747,27 @@ int hashStringToU32(String s) {
     h = _imul(h, 16777619);
   }
   return h & 0xFFFFFFFF;
+}
+
+/// RN `WARMUP_CASE_NAME`: the batch-level warmup run's case name.
+const String warmupCaseName = '__batch_warmup__';
+
+/// RN `isWarmupRun`.
+bool isWarmupRun(String? name) => name == warmupCaseName;
+
+/// RN `withBatchWarmup`: prepend a single unrecorded run of the first case
+/// when `discardWarmupCase` is on.
+AutomationConfig withBatchWarmup(AutomationConfig config) {
+  if (!config.discardWarmupCase) return config;
+  if (config.cases.isEmpty) return config;
+  final first = config.cases.first;
+  final warmup = AutomationCase(
+    id: '${first.id}__warmup',
+    name: warmupCaseName,
+    params: Map.of(first.params),
+    route: first.route,
+  );
+  return config.copyWith(cases: [warmup, ...config.cases]);
 }
 
 /// Apply `config.shuffleCases` deterministically. Same batchId → same order.

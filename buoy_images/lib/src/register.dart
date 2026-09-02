@@ -1,4 +1,5 @@
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'images_sync_adapter.dart';
@@ -16,6 +17,8 @@ bool _registered = false;
 /// RN's `unstable_setImageComponentDecorator`), so only wrapped images appear
 /// in the registry.
 void registerBuoyImages() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

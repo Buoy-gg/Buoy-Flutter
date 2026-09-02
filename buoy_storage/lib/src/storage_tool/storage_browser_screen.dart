@@ -33,7 +33,7 @@ import 'key_editor.dart';
 import 'set_storage_value.dart';
 import 'storage_alert.dart';
 import 'storage_filter_cards.dart';
-import 'storage_key_editor_screen.dart';
+import 'storage_key_detail_screen.dart';
 import 'storage_key_row.dart';
 import 'storage_models.dart';
 
@@ -160,6 +160,16 @@ class _StorageBrowserScreenState extends State<StorageBrowserScreen> {
     }
     if (!mounted || mapEquals(blocked, _editBlocked)) return;
     setState(() => _editBlocked = blocked);
+  }
+
+  /// The freshest row for [editing] — the browser re-reads every second and
+  /// the live editor's round-trip logic keys off the CURRENT prop value.
+  StorageKeyInfo _currentInfoFor(StorageKeyInfo editing) {
+    final id = _rowId(editing);
+    for (final k in _all) {
+      if (_rowId(k) == id) return k;
+    }
+    return editing;
   }
 
   /// The single write, for both the editor and the card's boolean toggle.
@@ -316,11 +326,24 @@ class _StorageBrowserScreenState extends State<StorageBrowserScreen> {
 
         // The editor covers the browser rather than replacing it — see the
         // library docstring.
+        // RN (Aug 2026) replaced the draft-and-Save editor with the LIVE
+        // detail screen: edits write through as you make them. The editor
+        // still covers the browser rather than replacing it; the host header
+        // isn't ours to change, so the screen carries its own back row.
         if (_editingKey case final editing?)
           Positioned.fill(
-            child: StorageKeyEditorScreen(
+            child: _DetailHost(
               key: ValueKey(_rowId(editing)),
-              storageKey: editing,
+              storageKey: _currentInfoFor(editing),
+              editBlockedReason: _editBlocked[_rowId(editing)],
+              eventCount: widget.eventCountByKey[editing.key],
+              isPinned: widget.pinnedKeys.contains(editing.key),
+              onTogglePin: widget.onTogglePin,
+              onViewHistory: () => widget.onViewHistory(editing.key),
+              onHideKey: (k) {
+                widget.onAddPattern(k.key);
+                setState(() => _editingKey = null);
+              },
               onSave: (raw) => _saveValue(editing, raw),
               onClose: () => setState(() => _editingKey = null),
               applySafeAreaInset: widget.applySafeAreaInset,
@@ -542,6 +565,65 @@ class _CenterMessage extends StatelessWidget {
                 color: MacOSColors.textSecondary,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// The detail screen plus the back row the host header would carry on RN.
+class _DetailHost extends StatelessWidget {
+  const _DetailHost({
+    super.key,
+    required this.storageKey,
+    required this.onSave,
+    required this.onClose,
+    this.editBlockedReason,
+    this.eventCount,
+    this.onViewHistory,
+    this.onHideKey,
+    this.isPinned = false,
+    this.onTogglePin,
+    this.applySafeAreaInset = false,
+  });
+
+  final StorageKeyInfo storageKey;
+  final Future<void> Function(String raw) onSave;
+  final VoidCallback onClose;
+  final String? editBlockedReason;
+  final int? eventCount;
+  final VoidCallback? onViewHistory;
+  final ValueChanged<StorageKeyInfo>? onHideKey;
+  final bool isPinned;
+  final ValueChanged<String>? onTogglePin;
+  final bool applySafeAreaInset;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: NightColor.bg,
+      child: Column(
+        children: [
+          ModalHeader(
+            children: [
+              ModalHeaderBack(onBack: onClose),
+              ModalHeaderContent(title: storageKey.key),
+            ],
+          ),
+          Expanded(
+            child: StorageKeyDetailScreen(
+              storageKey: storageKey,
+              onSave: onSave,
+              editBlockedReason: editBlockedReason,
+              eventCount: eventCount,
+              onViewHistory: onViewHistory,
+              onHideKey: onHideKey,
+              isPinned: isPinned,
+              onTogglePin: onTogglePin,
+              applySafeAreaInset: applySafeAreaInset,
+            ),
+          ),
         ],
       ),
     );

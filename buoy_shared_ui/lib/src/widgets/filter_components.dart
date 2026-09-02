@@ -26,7 +26,7 @@ class AddFilterButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: BuoyColors.input,
+          color: NightColor.surfaceElevated,
           borderRadius: BorderRadius.circular(10),
           // RN uses a dashed border; Flutter Border has no dash — solid at
           // the same 40-alpha reads near-identically at 1px.
@@ -104,7 +104,7 @@ class _AddFilterInputState extends State<AddFilterInput> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: BuoyColors.input,
+        color: NightColor.surfaceElevated,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.hexAlpha(0x40)),
       ),
@@ -116,7 +116,7 @@ class _AddFilterInputState extends State<AddFilterInput> {
               autofocus: true,
               autocorrect: false,
               onSubmitted: (_) => _submit(),
-              style: const TextStyle(fontSize: 13, color: BuoyColors.text),
+              style: const TextStyle(fontSize: 13, color: NightColor.text),
               cursorColor: color,
               decoration: InputDecoration(
                 isDense: true,
@@ -165,7 +165,7 @@ class _AddFilterInputState extends State<AddFilterInput> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: BuoyColors.hover,
+                  color: NightColor.surfaceElevated,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: BuoyGlyph(
@@ -213,9 +213,9 @@ class FilterList extends StatelessWidget {
                 vertical: 10,
               ),
               decoration: BoxDecoration(
-                color: BuoyColors.hover,
+                color: NightColor.surfaceElevated,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: BuoyColors.border),
+                border: Border.all(color: NightColor.border),
               ),
               child: Row(
                 children: [

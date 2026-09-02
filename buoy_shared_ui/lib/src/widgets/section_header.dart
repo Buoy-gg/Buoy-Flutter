@@ -28,7 +28,9 @@ class SectionHeader extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: BuoyColors.base,
+      // Transparent (was the opaque buoy base): section headers sit on night
+      // surfaces now, and an opaque strip breaks the star field behind them.
+      color: Colors.transparent,
       child: Row(
         children: [
           if (icon != null)
@@ -44,7 +46,7 @@ class SectionHeader extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: BuoyColors.text,
+                color: NightColor.text,
               ),
             ),
           ),

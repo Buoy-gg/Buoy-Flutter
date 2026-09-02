@@ -167,27 +167,32 @@ class _MinimizedToolsStackState extends State<MinimizedToolsStack>
     return TouchableOpacity(
       activeOpacity: 0.8,
       onTap: _expand,
-      child: Container(
-        height: MinimizedToolsStack.peekHeight,
-        decoration: _panelDecoration,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const BuoyGlyph(
-              BuoyIcons.chevronUp,
-              size: 14,
-              color: BuoyTheme.muted,
-            ),
-            if (count > 1)
-              Text(
-                '$count',
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: BuoyTheme.muted,
-                ),
+      child: Semantics(
+        button: true,
+        label: 'Show minimized tools',
+        child: Container(
+          key: const ValueKey('buoy-dock-peek'),
+          height: MinimizedToolsStack.peekHeight,
+          decoration: _panelDecoration,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const BuoyGlyph(
+                BuoyIcons.chevronUp,
+                size: 14,
+                color: BuoyTheme.muted,
               ),
-          ],
+              if (count > 1)
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: BuoyTheme.muted,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

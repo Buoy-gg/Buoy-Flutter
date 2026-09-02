@@ -7,6 +7,7 @@ import 'package:flutter/physics.dart';
 
 import '../../storage.dart';
 import '../buoy_theme.dart';
+import '../night/night_theme.dart';
 import '../touchable_opacity.dart';
 import 'modal_settings.dart';
 import 'modal_visibility.dart';
@@ -29,6 +30,38 @@ import 'modal_visibility.dart';
 /// [onMinimize] is provided (RN hides it the same way); the host moves the
 /// tool to its minimized dock and restores geometry from persistence on reopen.
 enum JsModalMode { bottomSheet, floating }
+
+/// Chrome variant (RN `ModalVariant`). [night] — the default since the
+/// suite-wide theme move — is the Everlights-style sheet (see
+/// `night_theme.dart`): near-black `#050505` surfaces at radius 16, a hairline
+/// accent border, a neutral drag handle instead of the teal bar, a
+/// transparent header, and the tool background hoisted to the sheet root so
+/// it runs through the header instead of stopping under it. [classic] is RN's
+/// `"default"` — the legacy card-grey chrome, kept as an escape hatch.
+enum JsModalVariant { classic, night }
+
+/// The shared tool background (RN `ToolBackground`), rendered behind every
+/// night-variant modal body. Null until a package registers one — buoy_core
+/// must not depend on the background variants, so `buoy_shared_ui` sets this
+/// seam at import time (the same arrangement as `BuoyOverlayHost`). While
+/// null, night modals render on the plain `#050505` sheet, which is exactly
+/// RN with the preset set to "Off".
+WidgetBuilder? toolBackgroundBuilder;
+
+/// Tool modals open and close without an entrance animation (RN
+/// `INSTANT_MODAL_ENTRANCE`). The animated entrance left the screen unchanged
+/// for ~240ms after a tap and the spring crept for ~1s after it looked
+/// settled; snapping to the final state made the whole devtools UI feel
+/// markedly faster. `false` restores the springs for every tool modal.
+const bool _instantModalEntrance = true;
+
+/// Vertical band the absolutely-positioned window controls occupy at the top
+/// right of the chrome (RN `WINDOW_CONTROLS_BAND`): container top 4 + the
+/// trigger's 2pt padding + a 12pt dot + 2. With custom header content the
+/// drag-indicator strip reserves exactly this, which is what lets a tool's
+/// header row run the FULL width instead of buying clearance with a right
+/// inset (that inset read as a hole on the right of every tool's nav).
+const double _windowControlsBand = 20;
 
 const _minHeightDefault = 100.0;
 const _floatingHeightDefault = 500.0;
@@ -58,6 +91,8 @@ class JsModal extends StatefulWidget {
     this.persistenceKey,
     this.onModeChange,
     this.wrapChildInScrollView = true,
+    this.background = true,
+    this.variant = JsModalVariant.night,
   });
 
   final BuoyStorage storage;
@@ -83,6 +118,16 @@ class JsModal extends StatefulWidget {
   final String? persistenceKey;
   final void Function(JsModalMode mode)? onModeChange;
   final bool wrapChildInScrollView;
+
+  /// Render the shared tool background ([toolBackgroundBuilder]) behind the
+  /// body. On by default; pass false for tools that don't want a backdrop or
+  /// that mount their own.
+  final bool background;
+
+  /// Chrome variant — see [JsModalVariant].
+  final JsModalVariant variant;
+
+  bool get _isNight => variant == JsModalVariant.night;
 
   @override
   State<JsModal> createState() => _JsModalState();
@@ -257,6 +302,12 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
 
   void _startEntrance(double screenHeight) {
     _entranceStarted = true;
+    if (_instantModalEntrance) {
+      // Snap to the final state — no animation in either direction.
+      _slide.value = 0;
+      _fade.value = 1;
+      return;
+    }
     _fade.forward(from: 0);
     if (_mode == JsModalMode.bottomSheet) {
       _slide.value = screenHeight;
@@ -292,6 +343,10 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
   }
 
   Future<void> _animateOut() async {
+    if (_instantModalEntrance) {
+      _fade.value = 0;
+      return;
+    }
     final screenHeight = MediaQuery.sizeOf(context).height;
     if (_mode == JsModalMode.bottomSheet) {
       _fade.reverse();
@@ -560,31 +615,40 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
             builder: (context, height, child) =>
                 SizedBox(height: height, child: child),
             child: Container(
-              decoration: BoxDecoration(
-                color: BuoyTheme.card,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(6),
-                ),
-                border: Border.all(color: BuoyTheme.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: BuoyTheme.teal.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Column(
+              decoration: widget._isNight
+                  ? _nightSheetDecoration(floating: false)
+                  : BoxDecoration(
+                      color: BuoyTheme.card,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(6),
+                      ),
+                      border: Border.all(color: BuoyTheme.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: BuoyTheme.teal.withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                    ),
+              child: Stack(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _handleHeaderTap,
-                    onVerticalDragStart: _sheetDragStart,
-                    onVerticalDragUpdate: _sheetDragUpdate,
-                    onVerticalDragEnd: _sheetDragEnd,
-                    child: _header(),
+                  // Night: the star field fills the whole sheet — header
+                  // included — instead of starting under the header band.
+                  if (widget._isNight) _nightBackdrop(floating: false),
+                  Column(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _handleHeaderTap,
+                        onVerticalDragStart: _sheetDragStart,
+                        onVerticalDragUpdate: _sheetDragUpdate,
+                        onVerticalDragEnd: _sheetDragEnd,
+                        child: _header(),
+                      ),
+                      Expanded(child: _content()),
+                    ],
                   ),
-                  Expanded(child: _content()),
                 ],
               ),
             ),
@@ -609,24 +673,29 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
             builder: (context, child) =>
                 Opacity(opacity: _fade.value.clamp(0.0, 1.0), child: child!),
             child: Container(
-              decoration: BoxDecoration(
-                color: BuoyTheme.card,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: _interacting ? BuoyTheme.teal : BuoyTheme.border,
-                  width: _interacting ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: BuoyTheme.teal.withValues(
-                      alpha: _interacting ? 0.5 : 0.3,
+              decoration: widget._isNight
+                  ? _nightSheetDecoration(floating: true)
+                  : BoxDecoration(
+                      color: BuoyTheme.card,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _interacting ? BuoyTheme.teal : BuoyTheme.border,
+                        width: _interacting ? 2 : 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: BuoyTheme.teal.withValues(
+                            alpha: _interacting ? 0.5 : 0.3,
+                          ),
+                          blurRadius: _interacting ? 12 : 20,
+                        ),
+                      ],
                     ),
-                    blurRadius: _interacting ? 12 : 20,
-                  ),
-                ],
-              ),
               child: Stack(
                 children: [
+                  // Night: the star field fills the whole window — header
+                  // included — instead of starting under the header band.
+                  if (widget._isNight) _nightBackdrop(floating: true),
                   Column(
                     children: [
                       GestureDetector(
@@ -702,40 +771,130 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
 
   // ── Shared chrome ─────────────────────────────────────────────────────
 
+  // ── Night chrome (RN nightBottomSheet / nightFloatingModal / nightBackdrop*)
+
+  /// RN: `#050505` sheet, radius 16 (top corners for the sheet, all four
+  /// floating), hairline `accent + "55"` border, accent shadow (0.22, blur
+  /// 10 offset −4 for the sheet; 0.22, blur 14 floating). NO clipping on the
+  /// sheet itself — the backdrop clips itself (see [_nightBackdrop]) so the
+  /// shadow survives and the star field's corner never paints over the
+  /// rounded corner.
+  BoxDecoration _nightSheetDecoration({required bool floating}) {
+    final r = Radius.circular(NightRadius.sheet);
+    return BoxDecoration(
+      color: NightColor.bg,
+      borderRadius: floating
+          ? BorderRadius.all(r)
+          : BorderRadius.vertical(top: r),
+      border: Border.all(
+        // RN floatingModalDragging: accent, width 2 while interacting.
+        color: floating && _interacting
+            ? NightColor.accent
+            : NightColor.accent.withAlphaByte(0x55),
+        width: floating && _interacting ? 2 : 0.5,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: NightColor.accent.withValues(
+            alpha: floating && _interacting ? 0.8 : 0.22,
+          ),
+          blurRadius: floating ? (_interacting ? 12 : 14) : 10,
+          offset: floating ? Offset.zero : const Offset(0, -4),
+        ),
+      ],
+    );
+  }
+
+  /// The hoisted tool background, clipping ITSELF to the sheet's corners
+  /// (matching radii) — it also keeps scenes that animate outside their own
+  /// bounds from bleeding past the window. Non-hit-testing, so it never eats
+  /// a touch.
+  Widget _nightBackdrop({required bool floating}) {
+    final builder = toolBackgroundBuilder;
+    if (!widget.background || builder == null) return const SizedBox.shrink();
+    final r = Radius.circular(NightRadius.sheet);
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ClipRRect(
+          borderRadius: floating
+              ? BorderRadius.all(r)
+              : BorderRadius.vertical(top: r),
+          child: Builder(builder: builder),
+        ),
+      ),
+    );
+  }
+
   Widget _header() {
     final floating = _mode == JsModalMode.floating;
+    final night = widget._isNight;
+    final hasCustom = widget.headerContent != null;
+
+    // RN dragIndicator (teal glowing bar; floating = 50×5 muted) vs
+    // nightDragIndicator (36×5 r2.5 neutral placeholder, no glow, both modes).
+    final indicator = night
+        ? Container(
+            width: 36,
+            height: 5,
+            decoration: BoxDecoration(
+              color: NightColor.placeholder,
+              borderRadius: BorderRadius.circular(2.5),
+            ),
+          )
+        : Container(
+            width: floating ? 50 : 40,
+            height: floating ? 5 : 3,
+            decoration: BoxDecoration(
+              color: floating ? BuoyTheme.muted : BuoyTheme.teal,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: floating
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: BuoyTheme.teal.withValues(alpha: 0.6),
+                        blurRadius: 4,
+                      ),
+                    ],
+            ),
+          );
+
     return Container(
+      key: const ValueKey('buoy-modal-header'),
       constraints: const BoxConstraints(minHeight: 56),
-      decoration: const BoxDecoration(
-        color: BuoyTheme.card,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-        border: Border(bottom: BorderSide(color: BuoyTheme.border)),
-      ),
+      decoration: night
+          // RN nightHeader: glass — the sheet-level star field runs through
+          // it; no border.
+          ? BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(NightRadius.sheet),
+              ),
+            )
+          : const BoxDecoration(
+              color: BuoyTheme.card,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+              border: Border(bottom: BorderSide(color: BuoyTheme.border)),
+            ),
       child: Stack(
         children: [
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 2),
-                child: Container(
-                  width: floating ? 50 : 40,
-                  height: floating ? 5 : 3,
-                  decoration: BoxDecoration(
-                    color: floating ? BuoyTheme.muted : BuoyTheme.teal,
-                    borderRadius: BorderRadius.circular(2),
-                    boxShadow: floating
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: BuoyTheme.teal.withValues(alpha: 0.6),
-                              blurRadius: 4,
-                            ),
-                          ],
-                  ),
+              // RN dragIndicatorContainer (paddingVertical 8) vs
+              // dragIndicatorContainerCustom: with custom header content the
+              // pill shares the top band with the window controls, so the
+              // strip claims that band and centres the pill in it.
+              if (hasCustom)
+                SizedBox(
+                  height: _windowControlsBand,
+                  child: Center(child: indicator),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: indicator,
                 ),
-              ),
-              if (widget.headerContent != null) widget.headerContent!,
+              if (hasCustom) widget.headerContent!,
             ],
           ),
           // RN windowControlsContainer: absolute right 4, trigger padding 2.
@@ -772,18 +931,24 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
           children: [
             if (canMinimize)
               _controlDot(
+                key: const ValueKey('buoy-window-minimize'),
+                label: 'Minimize modal',
                 color: const Color(0xFFFEBC2E),
                 icon: BuoyIcons.minus,
                 iconColor: const Color(0xFF7A5A00),
                 onTap: expandable ? null : _requestMinimize,
               ),
             _controlDot(
+              key: const ValueKey('buoy-window-toggle'),
+              label: 'Toggle modal mode',
               color: const Color(0xFF28C840),
               icon: _toggleModeIcon,
               iconColor: const Color(0xFF004A1A),
               onTap: expandable ? null : _toggleMode,
             ),
             _controlDot(
+              key: const ValueKey('buoy-window-close'),
+              label: 'Close modal',
               color: const Color(0xFFFF5F57),
               icon: BuoyIcons.x,
               iconColor: const Color(0xFF4A0000),
@@ -803,6 +968,8 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
   }
 
   Widget _controlDot({
+    required Key key,
+    required String label,
     required Color color,
     required LucideIcon icon,
     required Color iconColor,
@@ -810,13 +977,21 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
   }) {
     // RN: BUTTON_SIZE 12, ICON_SIZE 8, no padding around individual dots.
     final dot = Container(
+      key: key,
       width: 12,
       height: 12,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: Center(child: BuoyGlyph(icon, size: 8, color: iconColor)),
     );
-    if (onTap == null) return dot;
-    return TouchableOpacity(activeOpacity: 0.8, onTap: onTap, child: dot);
+    // RN accessibilityLabel "Close modal" etc. — the e2e handle when the
+    // dots are direct-tap (expandable off); with expandable on, the trigger
+    // wraps them and the popover's buttons carry their own.
+    if (onTap == null) return Semantics(label: label, child: dot);
+    return Semantics(
+      button: true,
+      label: label,
+      child: TouchableOpacity(activeOpacity: 0.8, onTap: onTap, child: dot),
+    );
   }
 
   /// RN expanded panel: 36px buttons, 12px gap, 8px padding, anchored to the
@@ -859,11 +1034,14 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
         child: Container(
           padding: const EdgeInsets.all(panelPadding),
           decoration: BoxDecoration(
-            color: BuoyTheme.card,
+            // RN nightExpandedContainer: night surface + hairline border.
+            color: widget._isNight ? NightColor.surface : BuoyTheme.card,
             borderRadius: BorderRadius.circular(
               (buttonSize + panelPadding * 2) / 2,
             ),
-            border: Border.all(color: BuoyTheme.border),
+            border: Border.all(
+              color: widget._isNight ? NightColor.border : BuoyTheme.border,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.4),
@@ -876,23 +1054,49 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             spacing: buttonSpacing,
             children: [
+              // Night: soft tints with a hairline border and the full-strength
+              // colour as the glyph (RN nightMinimize/Toggle/CloseButton).
               if (widget.onMinimize != null)
                 _expandedControlButton(
-                  color: const Color(0xFFFEBC2E),
+                  color: widget._isNight
+                      ? NightColor.warningSoft
+                      : const Color(0xFFFEBC2E),
+                  borderColor: widget._isNight
+                      ? NightColor.warning.withAlphaByte(0x59)
+                      : null,
                   icon: BuoyIcons.minus,
-                  iconColor: const Color(0xFF7A5A00),
+                  iconColor: widget._isNight
+                      ? NightColor.warning
+                      : const Color(0xFF7A5A00),
+                  label: 'Minimize modal',
                   onTap: () => _controlsAction(_requestMinimize),
                 ),
               _expandedControlButton(
-                color: const Color(0xFF28C840),
+                color: widget._isNight
+                    ? NightColor.accentSoft
+                    : const Color(0xFF28C840),
+                borderColor: widget._isNight
+                    ? NightColor.accentBorderStrong
+                    : null,
                 icon: _toggleModeIcon,
-                iconColor: const Color(0xFF004A1A),
+                iconColor: widget._isNight
+                    ? NightColor.accent
+                    : const Color(0xFF004A1A),
+                label: 'Toggle modal mode',
                 onTap: () => _controlsAction(_toggleMode),
               ),
               _expandedControlButton(
-                color: const Color(0xFFFF5F57),
+                color: widget._isNight
+                    ? NightColor.dangerSoft
+                    : const Color(0xFFFF5F57),
+                borderColor: widget._isNight
+                    ? NightColor.danger.withAlphaByte(0x59)
+                    : null,
                 icon: BuoyIcons.x,
-                iconColor: const Color(0xFF4A0000),
+                iconColor: widget._isNight
+                    ? NightColor.danger
+                    : const Color(0xFF4A0000),
+                label: 'Close modal',
                 onTap: () => _controlsAction(_requestClose),
               ),
             ],
@@ -907,28 +1111,41 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
     required LucideIcon icon,
     required Color iconColor,
     required VoidCallback onTap,
+    Color? borderColor,
+    String? label,
   }) {
     return TouchableOpacity(
       activeOpacity: 0.7,
       onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Center(child: BuoyGlyph(icon, size: 16, color: iconColor)),
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: borderColor == null ? null : Border.all(color: borderColor),
+          ),
+          child: Center(child: BuoyGlyph(icon, size: 16, color: iconColor)),
+        ),
       ),
     );
   }
 
   Widget _content() {
+    final body = widget.wrapChildInScrollView
+        ? SingleChildScrollView(child: widget.child)
+        : widget.child;
+    // RN content: bottom corners clipped at 16 in both variants; nightContent
+    // only swaps the opaque base for transparent so the sheet-level backdrop
+    // shows through.
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-      child: ColoredBox(
-        color: BuoyTheme.base,
-        child: widget.wrapChildInScrollView
-            ? SingleChildScrollView(child: widget.child)
-            : widget.child,
-      ),
+      child: widget._isNight
+          ? body
+          : ColoredBox(color: BuoyTheme.base, child: body),
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:buoy_core/buoy_core.dart';
-import '../macos_colors.dart';
 
 /// Port of shared-ui's DevToolsCard — the unified list-row container.
 /// RN constants: padding 12, marginV 4, radius 8, minHeight 44, borderWidth
@@ -18,7 +17,12 @@ class DevToolsCard extends StatelessWidget {
     this.marginHorizontal = 12,
     this.borderLeftColor,
     this.activeOpacity = 0.8,
+    this.isSelected = false,
   });
+
+  /// RN `isSelected`: the night selection language — soft accent fill and
+  /// accent border with a faint accent glow.
+  final bool isSelected;
 
   final Widget child;
   final VoidCallback? onTap;
@@ -44,9 +48,29 @@ class DevToolsCard extends StatelessWidget {
 
     final card = Container(
       decoration: BoxDecoration(
-        color: BuoyColors.card,
+        // Translucent night scrim (RN rgba(12,12,12,0.9)): same luminance
+        // contract as buoyColors.cardScrim, re-based on the night surface so
+        // the ToolBackground reads through every tool's card lists.
+        color: isSelected
+            ? NightColor.accentSoft
+            : const Color.fromRGBO(12, 12, 12, 0.9),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: BuoyColors.border.hexAlpha(0x40)),
+        // RN: borderColor night.border with borderBottomColor night.separator
+        // (only distinct on the desktop "chat" layout, where it is the ONLY
+        // edge a row has). Flutter refuses per-side colours on a rounded
+        // Border, and the separator composites to ≈#1F1F1F over this card —
+        // within a hair of #1A1A1C — so the outline is uniform here.
+        border: Border.all(
+          color: isSelected ? NightColor.accentBorderStrong : NightColor.border,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: NightColor.accent.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(borderRadius: BorderRadius.circular(7), child: content),
     );

@@ -18,6 +18,8 @@ bool _registered = false;
 /// apps depending on `buoy_network` directly call it once before `runApp`
 /// (or let `BuoyDevTools` mount trigger it via the umbrella).
 void registerBuoyNetwork({bool installHttpOverrides = true}) {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 
@@ -81,6 +83,15 @@ EventSourceAdapter _networkEventSource() => EventSourceAdapter(
         for (final e in store.events) {
           lastSignature[e.id] = signatureOf(e);
         }
+        // Seeding is not the whole story: the store's boot-capture buffer
+        // parks requests until the FIRST consumer subscribes, then flushes
+        // them — INSIDE `store.subscribe` below, i.e. after the seed — so the
+        // first pump would be handed traffic from before it existed (boot
+        // requests landing as "live" rows the instant the power button was
+        // pressed). The network TOOL wants that history; a timeline does not.
+        // A NEW row stamped before this subscription is exactly that history
+        // (an update to a row already emitted still flows). RN does the same.
+        final subscribedAt = DateTime.now().millisecondsSinceEpoch;
 
         void pump() {
           // Store holds newest-first; walk oldest→newest so the unified store's
@@ -90,7 +101,9 @@ EventSourceAdapter _networkEventSource() => EventSourceAdapter(
             final e = events[i];
             final sig = signatureOf(e);
             if (lastSignature[e.id] == sig) continue;
+            final isNew = !lastSignature.containsKey(e.id);
             lastSignature[e.id] = sig;
+            if (isNew && e.timestamp < subscribedAt) continue;
             emit(_transformNetworkEvent(e));
           }
         }

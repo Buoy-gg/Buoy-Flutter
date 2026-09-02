@@ -192,6 +192,7 @@ void main() {
         routeEventsSyncAdapter.actions.keys.toSet(),
         {
           'clearEvents',
+          'getCurrentRoute',
           'navigate',
           'stackNavigateToIndex',
           'stackPopToIndex',
@@ -237,6 +238,33 @@ void main() {
     test('navigate requires a path param', () {
       final navigate = routeEventsSyncAdapter.actions['navigate']!;
       expect(() => navigate(const {}), throwsArgumentError);
+    });
+
+    test('getCurrentRoute: latest event, else focused stack entry, else null', () {
+      final current = routeEventsSyncAdapter.actions['getCurrentRoute']!;
+      RouteEventStore.instance.clearEvents();
+      NavigationStackStore.instance.setStack(const []);
+      expect(current(null), {'path': null, 'params': {}, 'at': null, 'source': null});
+
+      NavigationStackStore.instance.setStack(buildStack(const [
+        (key: 'a', name: 'index', pathname: '/', params: {}),
+        (key: 'b', name: 'detail', pathname: '/pokemon/25', params: {'id': '25'}),
+      ]));
+      final fromStack = current(null) as Map;
+      expect(fromStack['path'], '/pokemon/25');
+      expect(fromStack['source'], 'stack');
+      expect(fromStack['at'], isNull);
+
+      RouteEventStore.instance.record(RouteChangeEvent(
+        pathname: '/shop',
+        params: const {},
+        segments: const ['shop'],
+        timestamp: 99,
+      ));
+      final fromEvent = current(null) as Map;
+      expect(fromEvent['path'], '/shop');
+      expect(fromEvent['source'], 'event');
+      expect(fromEvent['at'], 99);
     });
   });
 }

@@ -5,8 +5,10 @@ import '../macos_colors.dart';
 
 /// Port of shared-ui's ModalHeader (container + Navigation/Content/Actions).
 /// Rendered inside JsModal's headerContent slot, below the drag indicator.
-/// RN: row, gap 8, minHeight 32, paddingLeft 4. The window-control dots live
-/// in JsModal itself, so the row reserves right-side space for them.
+/// RN: row, gap 8, minHeight 32, paddingLeft 4, NO right inset — the window
+/// controls are cleared VERTICALLY (JsModal's drag strip owns their 20pt
+/// band), so nothing here is pushed sideways to stay out from under them.
+/// Night sweep: text/icon tones read the night tokens.
 class ModalHeader extends StatelessWidget {
   const ModalHeader({super.key, required this.children});
 
@@ -46,7 +48,7 @@ class ModalHeaderBack extends StatelessWidget {
           child: BuoyGlyph(
             BuoyIcons.chevronLeft,
             size: 20,
-            color: BuoyColors.textSecondary,
+            color: NightColor.textSecondary,
           ),
         ),
       ),
@@ -79,7 +81,7 @@ class ModalHeaderContent extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: centered ? TextAlign.center : TextAlign.start,
             style: const TextStyle(
-              color: BuoyColors.text,
+              color: NightColor.text,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),

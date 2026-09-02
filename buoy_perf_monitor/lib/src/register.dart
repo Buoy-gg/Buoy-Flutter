@@ -9,6 +9,7 @@
 library;
 
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'automation_settings.dart';
@@ -30,6 +31,8 @@ const Color kPerfMonitorColor = Color(0xFF22D3EE);
 /// (which restores the persisted HUD-enabled flag), mounts the HUD overlay, and
 /// registers the tool + B1 sync adapter with [Buoy]. Idempotent.
 void registerBuoyPerfMonitor() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

@@ -3,6 +3,7 @@
 library;
 
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'console_capture.dart';
@@ -20,6 +21,8 @@ bool _registered = false;
 /// To also capture `print`, wrap `runApp` in [BuoyConsole.runZoned] — a custom
 /// `Zone` is the only way to intercept `print`.
 void registerBuoyConsole() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

@@ -5,16 +5,15 @@ import 'package:buoy_core/buoy_core.dart';
 import '../game_ui_colors.dart';
 
 /// Ports packages/shared/src/ui/components/SearchBar.tsx — the search field with
-/// clear button, optional filter button, and a suggestions/recent dropdown.
-/// gameUI-themed (resolves to the macOS palette via [GameUIColors]).
+/// clear button and optional filter button. gameUI-themed (resolves to the
+/// macOS palette via [GameUIColors]).
 ///
 /// RN numerics: bar bg panel, radius 8, padH 12 / padV 8, gap 8, border
 /// transparent; focused border `primary40`. Search icon 16 secondary; input
 /// font 14. Clear X 14; filter button bg `primary20` radius 4 pad 4.
 ///
-/// Deviation: the RN suggestions box is absolutely positioned over following
-/// content; here it renders in normal flow beneath the bar (Flutter overlay
-/// positioning is heavier and this component is not yet used by a shipped tool).
+/// The suggestions / recent-searches dropdown was REMOVED on RN (Aug 2026 —
+/// tool inputs never get autocomplete). Do not re-add it.
 class BuoySearchBar extends StatefulWidget {
   const BuoySearchBar({
     super.key,
@@ -22,8 +21,6 @@ class BuoySearchBar extends StatefulWidget {
     required this.onChange,
     this.onClear,
     this.placeholder = 'Search...',
-    this.suggestions = const [],
-    this.recentSearches = const [],
     this.showFilters = false,
     this.onFilterPress,
     this.autoFocus = false,
@@ -34,8 +31,6 @@ class BuoySearchBar extends StatefulWidget {
   final ValueChanged<String> onChange;
   final VoidCallback? onClear;
   final String placeholder;
-  final List<String> suggestions;
-  final List<String> recentSearches;
   final bool showFilters;
   final VoidCallback? onFilterPress;
   final bool autoFocus;
@@ -83,19 +78,8 @@ class _BuoySearchBarState extends State<BuoySearchBar> {
   @override
   Widget build(BuildContext context) {
     final value = widget.value;
-    final filtered = [
-      for (final s in widget.suggestions)
-        if (s.toLowerCase().contains(value.toLowerCase())) s,
-    ];
-    final showSuggestions = _isFocused &&
-        (filtered.isNotEmpty ||
-            (value.isEmpty && widget.recentSearches.isNotEmpty));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
+    return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: GameUIColors.panel,
@@ -169,78 +153,6 @@ class _BuoySearchBarState extends State<BuoySearchBar> {
                 ),
             ],
           ),
-        ),
-        if (showSuggestions) _suggestions(value, filtered),
-      ],
     );
   }
-
-  Widget _suggestions(String value, List<String> filtered) {
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      constraints: const BoxConstraints(maxHeight: 200),
-      decoration: BoxDecoration(
-        color: GameUIColors.panel,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (value.isEmpty && widget.recentSearches.isNotEmpty) ...[
-              _title('Recent'),
-              for (final search in widget.recentSearches.take(5))
-                _item(BuoyIcons.clock, search),
-            ],
-            if (filtered.isNotEmpty) ...[
-              if (value.isNotEmpty) _title('Suggestions'),
-              for (final s in filtered.take(5)) _item(BuoyIcons.search, s),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _title(String text) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Text(
-          text.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: GameUIColors.secondary,
-          ),
-        ),
-      );
-
-  Widget _item(LucideIcon icon, String text) => TouchableOpacity(
-        activeOpacity: 0.2,
-        onTap: () {
-          _controller.text = text;
-          widget.onChange(text);
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              BuoyGlyph(icon, size: 12, color: GameUIColors.tertiary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: GameUIColors.text,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
 }

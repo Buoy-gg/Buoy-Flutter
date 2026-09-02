@@ -458,6 +458,43 @@ void main() {
       expect(applyShuffle(one, 'batch-x').cases.length, 1);
     });
 
+    test('withBatchWarmup prepends one unrecorded run of the first case', () {
+      final cases = [
+        AutomationCase(id: '1', name: 'a', route: '/a'),
+        AutomationCase(id: '2', name: 'b'),
+      ];
+      final on = defaultAutomationConfig().copyWith(cases: cases);
+      expect(on.discardWarmupCase, isTrue, reason: 'RN default');
+      final warmed = withBatchWarmup(on);
+      expect(warmed.cases.length, 3);
+      expect(warmed.cases.first.name, warmupCaseName);
+      expect(warmed.cases.first.route, '/a');
+      expect(isWarmupRun(warmed.cases.first.name), isTrue);
+
+      final off = on.copyWith(discardWarmupCase: false);
+      expect(withBatchWarmup(off).cases.length, 2);
+
+      // And the aggregate never counts it.
+      final items = aggregateLibrary([
+        const BenchmarkIndexEntry(
+          id: 'w',
+          createdAt: 50,
+          name: warmupCaseName,
+          batchId: 'b9',
+          batchIndex: 0,
+        ),
+        const BenchmarkIndexEntry(
+          id: 'r',
+          createdAt: 100,
+          name: 'a',
+          batchId: 'b9',
+          batchIndex: 1,
+        ),
+      ]);
+      expect(items.length, 1);
+      expect(items.single.childIds, ['r']);
+    });
+
     test('clamps mirror RN (runs 1-10, cooldown 0-30s, warmup < runs)', () {
       expect(clampRunsPerCase(99), 10);
       expect(clampRunsPerCase(0), 1);

@@ -46,7 +46,11 @@ class ConsoleMessageRow extends StatefulWidget {
 }
 
 class _ConsoleMessageRowState extends State<ConsoleMessageRow> {
-  late bool _stackOpen = widget.row.entry.method == 'trace';
+  /// RN `expanded`: EVERY row is tap-to-expand. Collapsed, the content wraps
+  /// clamp to one 16pt line (long objects and multi-line strings no longer
+  /// blow the list open); expanded shows everything and, for rows that have
+  /// one, the stack. Trace rows start expanded, as before.
+  late bool _expanded = widget.row.entry.method == 'trace';
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +139,7 @@ class _ConsoleMessageRowState extends State<ConsoleMessageRow> {
         Padding(
           padding: const EdgeInsets.only(right: 4),
           child: Text(
-            _stackOpen ? '▼' : '▶',
+            _expanded ? '▼' : '▶',
             style: TextStyle(fontSize: 8, height: 16 / 8, color: textColor),
           ),
         ),
@@ -177,11 +181,27 @@ class _ConsoleMessageRowState extends State<ConsoleMessageRow> {
         ),
     ];
 
+    final wrap = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.start,
+      children: metaAndContent,
+    );
     final inner = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(crossAxisAlignment: WrapCrossAlignment.start, children: metaAndContent),
-        if (hasStack && _stackOpen)
+        // RN contentWrapClamped: nowrap + hidden + maxHeight 16 while collapsed.
+        _expanded
+            ? wrap
+            : ClipRect(
+                child: SizedBox(
+                  height: 16,
+                  child: OverflowBox(
+                    alignment: Alignment.topLeft,
+                    maxHeight: double.infinity,
+                    child: wrap,
+                  ),
+                ),
+              ),
+        if (hasStack && _expanded)
           Padding(
             padding: const EdgeInsets.only(top: 2, left: 12),
             child: Column(
@@ -273,14 +293,11 @@ class _ConsoleMessageRowState extends State<ConsoleMessageRow> {
         child: content,
       );
     }
-    if (hasStack) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _stackOpen = !_stackOpen),
-        child: content,
-      );
-    }
-    return content;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: content,
+    );
   }
 
   Widget _originGutter(String glyph, Color? color) => SizedBox(

@@ -38,6 +38,8 @@ const String routeEventsToolId = 'route-events';
 /// the tool in the dial. Both orders compose — the router can be attached after
 /// the tool is registered.
 void registerBuoyRoutes({GoRouter? router}) {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (router != null) BuoyRoutesController.instance.attachRouter(router);
 
   if (_registered) return;

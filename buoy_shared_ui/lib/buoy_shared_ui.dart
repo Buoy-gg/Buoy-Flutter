@@ -10,6 +10,39 @@ library;
 // Colors
 export 'src/macos_colors.dart';
 export 'src/game_ui_colors.dart';
+// The Night design tokens (RN ui/night/nightTheme.ts) live in buoy_core so
+// JsModal's chrome can use them; re-exported here so tools keep importing
+// from this barrel.
+export 'package:buoy_core/buoy_core.dart'
+    show Night, NightColor, NightRadius, NightFont, NightAlpha;
+
+// Night primitives live in buoy_core beside the tokens (the dial's settings
+// sheet is built from them); re-exported here for tools.
+export 'package:buoy_core/buoy_core.dart'
+    show
+        NightSectionLabel,
+        NightFootnote,
+        NightFootnoteTone,
+        NightCard,
+        NightSeparator,
+        NightRows,
+        NightSwitch,
+        NightChip,
+        NightButton,
+        NightButtonVariant,
+        NightButtonSize,
+        NightSegmented,
+        NightSegmentedSize,
+        NightBadge,
+        NightBadgeTone;
+
+// Tool backgrounds (RN ui/backgrounds): the persisted preset, the drop-in
+// backdrop, the switcher strip, and the seam install for JsModal.
+export 'src/backgrounds/background_store.dart';
+export 'src/backgrounds/background_switcher.dart';
+export 'src/backgrounds/registry.dart';
+export 'src/backgrounds/tool_background.dart';
+export 'src/backgrounds/types.dart';
 
 // Formatting + time
 export 'src/formatting.dart';
@@ -18,6 +51,10 @@ export 'src/time/relative_time.dart';
 
 // Filters
 export 'src/ignored_patterns.dart';
+
+// Data viewer — the live editor (RN dataViewer/LiveExplorer + nestedPath)
+export 'src/data_viewer/live_explorer.dart';
+export 'src/data_viewer/nested_path.dart';
 
 // Stores
 export 'src/stores/base_event_store.dart';

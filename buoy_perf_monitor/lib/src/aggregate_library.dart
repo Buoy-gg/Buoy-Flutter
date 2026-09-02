@@ -9,6 +9,7 @@
 /// anything wrong in this batch?" at a glance.
 library;
 
+import 'automation_runner.dart' show isWarmupRun;
 import 'benchmark_storage.dart';
 
 /// A Library row: either one solo run or a collapsed batch.
@@ -88,6 +89,8 @@ List<LibraryItem> aggregateLibrary(List<BenchmarkIndexEntry> entries) {
   final solos = <LibraryItem>[];
   final buckets = <String, List<BenchmarkIndexEntry>>{};
   for (final entry in entries) {
+    // The batch warmup run is never part of the numbers (RN parity).
+    if (isWarmupRun(entry.name)) continue;
     final batchId = entry.batchId;
     if (batchId == null) {
       solos.add(LibraryItem.solo(entry));

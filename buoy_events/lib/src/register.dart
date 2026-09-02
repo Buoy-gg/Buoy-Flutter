@@ -19,6 +19,8 @@ bool _registered = false;
 /// The tool captures nothing itself — it aggregates whatever source tools have
 /// registered into `buoy_shared_ui`'s `eventSourceRegistry`.
 void registerBuoyEvents() {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (_registered) return;
   _registered = true;
 

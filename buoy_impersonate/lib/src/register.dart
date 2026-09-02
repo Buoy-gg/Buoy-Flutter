@@ -21,6 +21,7 @@
 library;
 
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'impersonate_store.dart';
@@ -63,6 +64,8 @@ void registerBuoyImpersonate({
   ImpersonateDefaults? defaults,
   bool showSettingsTab = true,
 }) {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   final config = ImpersonateToolConfig.instance;
   if (onSearchUsers != null) config.onSearchUsers = onSearchUsers;
   config.showSettingsTab = showSettingsTab;

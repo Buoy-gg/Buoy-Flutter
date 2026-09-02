@@ -56,6 +56,14 @@ class MacOSColors {
 class BuoyColors {
   static const base = Color(0xFF121212);
   static const card = Color(0xFF1A1A1A);
+
+  /// Card fill for surfaces that sit over a ToolBackground: translucent so the
+  /// field reads through, but calibrated against the BRIGHTEST scene in the
+  /// catalogue (Live Sky's noon clouds, ~215 luminance) so a card's backing
+  /// stays ≤ ~45 luminance and text never washes out. Over the "off" preset it
+  /// is visually indistinguishable from [card]. RN `buoyColors.cardScrim`
+  /// = rgba(10,13,20,0.9).
+  static const cardScrim = Color.fromRGBO(10, 13, 20, 0.9);
   static const hover = Color(0xFF242424);
   static const input = Color(0xFF2A2A2A);
   static const border = Color(0xFF333333);

@@ -96,6 +96,7 @@ class BuoyIcons {
   static const LucideIcon bookmark = bookmarkGlyph;
   static const LucideIcon navigation = navigationGlyph;
   static const LucideIcon imageOff = imageOffGlyph;
+  static const LucideIcon palette = paletteGlyph;
   static const LucideIcon gitBranch = gitBranchGlyph;
   static const LucideIcon gauge = gaugeGlyph;
   static const LucideIcon crop = cropGlyph;

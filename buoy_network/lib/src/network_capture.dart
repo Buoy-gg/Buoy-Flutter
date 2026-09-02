@@ -181,6 +181,7 @@ class NetworkCaptureEvent {
 
   Map<String, Object?> toJson({
     bool stripLargeBodies = false,
+
     /// Force both bodies off the wire regardless of size — the metadata-only
     /// form used for the tail of the list once the snapshot budget is spent.
     bool metadataOnly = false,
@@ -362,7 +363,10 @@ class NetworkEventStore {
     _WireEvent entry;
     try {
       final json = event.toJson(stripLargeBodies: true);
-      entry = _WireEvent(json, approxJsonSize(json, snapshotEventsBudget).bytes);
+      entry = _WireEvent(
+        json,
+        approxJsonSize(json, snapshotEventsBudget).bytes,
+      );
     } catch (_) {
       // A body that blows up the size walk itself degrades to metadata rather
       // than letting getSnapshot throw and taking the whole panel down.
@@ -417,6 +421,10 @@ class NetworkEventStore {
   void Function() subscribe(void Function() onChange) {
     _listeners.add(onChange);
     capturing = true;
+    // Every new consumer — the Network modal opening, a dashboard watch
+    // attaching — is a chance to notice and repair a clobbered interceptor
+    // (RN `subscribeToEvents` does the same).
+    ensureInterception();
     // Flush BEFORE the first consumer reads, so its very first snapshot already
     // carries boot traffic.
     _flushBootBuffer();
@@ -425,6 +433,30 @@ class NetworkEventStore {
       if (_listeners.isEmpty) capturing = false;
     };
   }
+
+  /// Whether requests actually flow through capture right now: the installed
+  /// override is (or wraps) ours. `HttpOverrides.global = …` gets re-assigned
+  /// in the wild — a cert-bypass installed after login, a proxy toggle, a
+  /// second dev tool — and after that every request bypasses capture while
+  /// `registerBuoyNetwork` still believes it installed the hook.
+  static bool get interceptionLive =>
+      HttpOverrides.current is BuoyHttpOverrides;
+
+  /// Re-assert the interceptor if something re-assigned `HttpOverrides.global`
+  /// since capture started (port of RN `ensureInterception`). A no-op costing
+  /// one `is` check when healthy; re-installs by WRAPPING the current override
+  /// so whatever replaced us keeps working underneath. Only while this store
+  /// is capturing — a store nobody is reading must not install anything.
+  void ensureInterception() {
+    if (!capturing || !_installRequested) return;
+    if (interceptionLive) return;
+    BuoyHttpOverrides.install();
+  }
+
+  /// Set by `BuoyHttpOverrides.install()`: the app asked for the hook, so
+  /// repairing it later is honouring that request, not overriding
+  /// `installHttpOverrides: false`.
+  static bool _installRequested = false;
 }
 
 /// Live store first, then the saved store — a pin may hold the only remaining
@@ -509,7 +541,8 @@ OverrideRule? _readRuleDraft(Object? params) {
         : base?.headers,
     // Objects are accepted and serialized so a caller can send JSON directly
     // instead of pre-stringifying it, which is the mistake everyone makes once.
-    body: body ??
+    body:
+        body ??
         (raw['body'] != null
             ? const JsonEncoder.withIndent('  ').convert(raw['body'])
             : null),
@@ -519,8 +552,7 @@ OverrideRule? _readRuleDraft(Object? params) {
     delayMs: raw['delayMs'] is num ? (raw['delayMs'] as num).toInt() : null,
     times: raw['times'] is num ? (raw['times'] as num).toInt() : null,
     alternate: raw['alternate'] == true,
-    createdAt:
-        existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+    createdAt: existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
   );
 }
 
@@ -537,24 +569,31 @@ OverrideRule? _readRuleDraft(Object? params) {
 /// panel being dropped at the emit layer.
 final networkSyncAdapter = ToolSyncAdapter(
   version: 5,
-  getSnapshot: () => {
-    'events': NetworkEventStore.instance.snapshot(),
-    // Saved snapshots ride on EVERY snapshot, so they go through the same body
-    // strip as events — a fat pin would otherwise land in the same 200ms loop
-    // that the stripping exists to protect.
-    'saved': [
-      for (final record in NetworkSavedStore.instance.records)
-        {
-          ...record.toJson(),
-          'event': record.event.toJson(stripLargeBodies: true),
-        },
-    ],
-    // Rules live on the DEVICE — that's the only place they can run, since a
-    // rule is applied inside the app's own HttpClient. Remote surfaces mirror
-    // this and forward their edits back as actions.
-    'overrides': OverrideRulesStore.instance.snapshotState(
-      snapshotBodyInlineLimit,
-    ),
+  getSnapshot: () {
+    // Piggyback the interception health check on the watch loop: while a
+    // dashboard/MCP watch is open this runs continuously, so a clobbered
+    // HttpOverrides heals within one snapshot tick instead of staying dead
+    // for the session (RN does the same).
+    NetworkEventStore.instance.ensureInterception();
+    return {
+      'events': NetworkEventStore.instance.snapshot(),
+      // Saved snapshots ride on EVERY snapshot, so they go through the same body
+      // strip as events — a fat pin would otherwise land in the same 200ms loop
+      // that the stripping exists to protect.
+      'saved': [
+        for (final record in NetworkSavedStore.instance.records)
+          {
+            ...record.toJson(),
+            'event': record.event.toJson(stripLargeBodies: true),
+          },
+      ],
+      // Rules live on the DEVICE — that's the only place they can run, since a
+      // rule is applied inside the app's own HttpClient. Remote surfaces mirror
+      // this and forward their edits back as actions.
+      'overrides': OverrideRulesStore.instance.snapshotState(
+        snapshotBodyInlineLimit,
+      ),
+    };
   },
   subscribe: (onChange) {
     final unsubscribeEvents = NetworkEventStore.instance.subscribe(onChange);
@@ -736,6 +775,10 @@ final networkSyncAdapter = ToolSyncAdapter(
         'capturing': subscribers > 0,
         'subscribers': subscribers,
         'interceptorInstalled': HttpOverrides.current is BuoyHttpOverrides,
+        // installed:true + live:false = something re-assigned
+        // HttpOverrides.global over the interceptor (it self-heals on the
+        // next subscribe/snapshot — see ensureInterception).
+        'interceptorLive': NetworkEventStore.interceptionLive,
         'listenerCount': subscribers,
         'eventCount': NetworkEventStore.instance.events.length,
       };
@@ -756,8 +799,7 @@ final networkSyncAdapter = ToolSyncAdapter(
           'hooksInstalled': true,
           'devFlag': kDebugMode,
           'ruleCount': store.activeRules.length,
-          'matches':
-              findMatchingRule(url, 'GET', store.activeRules) != null,
+          'matches': findMatchingRule(url, 'GET', store.activeRules) != null,
         },
         'store': {
           'enabled': store.enabled,
@@ -791,6 +833,7 @@ class BuoyHttpOverrides extends HttpOverrides {
   /// runApp so lazily-created shared clients (NetworkImage, WebSocket) are
   /// constructed through the wrapper.
   static void install() {
+    NetworkEventStore._installRequested = true;
     final current = HttpOverrides.current;
     HttpOverrides.global = BuoyHttpOverrides(
       previous: current is BuoyHttpOverrides ? null : current,
@@ -855,18 +898,19 @@ class _CapturingHttpClient implements HttpClient {
       // Headers are absent by necessity, not oversight: callers set them on the
       // returned request, and there is no returned request — exactly the state
       // a real connection failure leaves behind.
-      final event = NetworkCaptureEvent(
-        id: NetworkEventStore.instance.nextId(),
-        method: method,
-        url: url.toString(),
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-        requestClient: 'http',
-      )
-        ..override = NetworkOverrideMark.forOutcome(outcome)
-        ..error = outcome.failKind == OverrideFailKind.timeout
-            ? 'Network request timed out'
-            : 'Network request failed'
-        ..duration = outcome.delayMs;
+      final event =
+          NetworkCaptureEvent(
+              id: NetworkEventStore.instance.nextId(),
+              method: method,
+              url: url.toString(),
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+              requestClient: 'http',
+            )
+            ..override = NetworkOverrideMark.forOutcome(outcome)
+            ..error = outcome.failKind == OverrideFailKind.timeout
+                ? 'Network request timed out'
+                : 'Network request failed'
+            ..duration = outcome.delayMs;
       NetworkEventStore.instance.add(event);
 
       if (outcome.delayMs > 0) {
@@ -915,22 +959,24 @@ class _CapturingHttpClient implements HttpClient {
     final requestHeaders = <String, String>{};
     headers.forEach((name, values) => requestHeaders[name] = values.join(', '));
 
-    final event = NetworkCaptureEvent(
-      id: store.nextId(),
-      method: method,
-      url: url.toString(),
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      requestClient: requestHeaders['x-request-client'] ??
-          requestHeaders[_attributionHeader] ??
-          'http',
-      requestHeaders: requestHeaders..remove(_attributionHeader),
-    )
-      ..override = NetworkOverrideMark.forOutcome(outcome)
-      ..status = outcome.status
-      ..statusText = outcome.statusText
-      ..responseHeaders = outcome.headers
-      ..responseType = outcome.headers['content-type']
-      ..duration = outcome.delayMs;
+    final event =
+        NetworkCaptureEvent(
+            id: store.nextId(),
+            method: method,
+            url: url.toString(),
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            requestClient:
+                requestHeaders['x-request-client'] ??
+                requestHeaders[_attributionHeader] ??
+                'http',
+            requestHeaders: requestHeaders..remove(_attributionHeader),
+          )
+          ..override = NetworkOverrideMark.forOutcome(outcome)
+          ..status = outcome.status
+          ..statusText = outcome.statusText
+          ..responseHeaders = outcome.headers
+          ..responseType = outcome.headers['content-type']
+          ..duration = outcome.delayMs;
 
     if (body.isNotEmpty) {
       event.requestSize = body.length;

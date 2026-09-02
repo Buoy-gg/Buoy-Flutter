@@ -159,13 +159,19 @@ class BuoyRoutesController {
   // ── Navigation actions (UI + remote) ────────────────────────────────────────
 
   /// Remote/UI navigate to a concrete path (RN `router.navigate`).
-  Object navigate(String path) {
+  Object navigate(String path, {bool replace = false}) {
     final router = _router;
     if (router == null) {
       throw StateError('go_router is not available on this device');
     }
-    router.go(path);
-    return {'navigated': path};
+    // RN: `router.replace` when asked, else `router.navigate`. go_router's
+    // `go` is the navigate analogue; `replace` swaps the top entry.
+    if (replace) {
+      router.replace(path);
+    } else {
+      router.go(path);
+    }
+    return {'navigated': path, 'replaced': replace};
   }
 
   void navigateToIndex(int index) {

@@ -1,6 +1,13 @@
 /// Sync adapter for the `riverpod` tool — mirrors the SHAPES of
-/// packages/jotai/src/jotai/sync/jotaiSyncAdapter.ts (version 1) under the new
+/// packages/jotai/src/jotai/sync/jotaiSyncAdapter.ts (version 2) under the new
 /// `riverpod` tool id.
+///
+/// v2 (RN parity, Aug 2026): the per-snapshot stream is VALUE-FREE. Change-log
+/// `prevValue`/`nextValue` are replaced with on-device markers and oversized /
+/// unserializable `atoms[].currentValue` uses the same marker; dashboards
+/// fetch values on demand via `getChangeDetail` / `getAtomValue`. Same hazard
+/// as storage/redux/zustand: up to 200 changes × 2 values on every 200ms
+/// snapshot janked every app that opened a dashboard.
 ///
 /// Compatibility decision (logged in riverpod.md): the wire keeps Jotai's field
 /// names (`changes`/`atoms`, actions `listAtoms`/`setAtom`/`clearEvents`) so a
@@ -16,6 +23,51 @@ import 'package:buoy_core/buoy_core.dart';
 
 import 'riverpod_serialize.dart';
 import 'riverpod_state_store.dart';
+import 'riverpod_types.dart';
+
+/// Sentinel used in WIRE-FORM snapshots in place of raw values. Byte-identical
+/// to the RN constant — the desktop panel matches on `__buoyValueOnDevice`.
+const Map<String, Object?> valueOnDevice = {
+  '__buoyValueOnDevice': true,
+  'note':
+      'Atom values stay on the device — fetched on demand via getChangeDetail / getAtomValue.',
+};
+
+const int _maxChangeDetailBytes = 8 * 1024 * 1024;
+const int _maxWirePayloadBytes = 16 * 1024;
+
+/// Per-change wire cache — the store prepends and never mutates a recorded
+/// change, so identity is a correct, self-invalidating key. `Expando` is the
+/// `WeakMap`.
+final Expando<Map<String, Object?>> _changeCache = Expando('riverpodWireChange');
+
+Map<String, Object?> _toWireChange(ProviderChange change) {
+  final cached = _changeCache[change];
+  if (cached != null) return cached;
+  final wire = change.toJson(serialize: serializeValue)
+    ..['prevValue'] = valueOnDevice
+    ..['nextValue'] = valueOnDevice;
+  _changeCache[change] = wire;
+  return wire;
+}
+
+Object? _toWireValue(Object? value) {
+  final serialized = serializeValue(value);
+  return isOverWireBudget(serialized, _maxWirePayloadBytes)
+      ? valueOnDevice
+      : serialized;
+}
+
+const Map<String, Object?> _cappedNote = {
+  '__buoyTruncated': true,
+  'note':
+      'Exceeds the ${_maxChangeDetailBytes ~/ (1024 * 1024)}MB detail limit — inspect it on-device.',
+};
+
+Object? _cap(Object? value) {
+  final serialized = serializeValue(value);
+  return isOverWireBudget(serialized, _maxChangeDetailBytes) ? _cappedNote : serialized;
+}
 
 Map<String, Object?>? _asMap(Object? params) {
   if (params is Map<String, Object?>) return params;
@@ -24,14 +76,14 @@ Map<String, Object?>? _asMap(Object? params) {
 }
 
 final riverpodSyncAdapter = ToolSyncAdapter(
-  version: 1,
+  version: 2,
   getSnapshot: () => {
     'changes': [
-      for (final c in riverpodStateStore.getChanges())
-        c.toJson(serialize: serializeValue),
+      for (final c in riverpodStateStore.getChanges()) _toWireChange(c),
     ],
     'atoms': [
-      for (final s in riverpodStateStore.getProviderSnapshots()) s.toJson(),
+      for (final s in riverpodStateStore.getProviderSnapshots())
+        {...s.toJson(), 'currentValue': _toWireValue(s.currentValue)},
     ],
   },
   subscribe: (onChange) {
@@ -47,6 +99,34 @@ final riverpodSyncAdapter = ToolSyncAdapter(
     'clearEvents': (_) {
       riverpodStateStore.clearChanges();
       return null;
+    },
+
+    /// On-demand detail: one change's real prevValue/nextValue. The
+    /// per-snapshot stream stays value-free; this is the explicit,
+    /// size-guarded channel for the detail pane.
+    'getChangeDetail': (params) {
+      final id = _asMap(params)?['id'] as String?;
+      if (id == null || id.isEmpty) return {'found': false, 'reason': 'missing id'};
+      final change = riverpodStateStore.getChangeById(id);
+      if (change == null) return {'found': false, 'reason': 'unknown id'};
+      return {
+        'found': true,
+        'id': id,
+        'prevValue': _cap(change.prevValue),
+        'nextValue': _cap(change.nextValue),
+      };
+    },
+
+    /// On-demand current value for one provider. Wire-form snapshots replace
+    /// oversized / unserializable `currentValue` with [valueOnDevice].
+    'getAtomValue': (params) {
+      final label = _asMap(params)?['label'] as String?;
+      if (label == null || label.isEmpty) {
+        return {'found': false, 'reason': 'missing label'};
+      }
+      final provider = riverpodStateStore.getProvider(label);
+      if (provider == null) return {'found': false, 'reason': 'unknown label'};
+      return {'found': true, 'label': label, 'currentValue': _cap(provider.currentValue)};
     },
 
     /// Compact provider reader for a remote driver (mirrors jotai `listAtoms`).

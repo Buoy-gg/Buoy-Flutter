@@ -3,6 +3,7 @@
 library;
 
 import 'package:buoy_core/buoy_core.dart';
+import 'package:buoy_shared_ui/buoy_shared_ui.dart' show installToolBackground;
 import 'package:flutter/material.dart';
 
 import 'env_store.dart';
@@ -33,6 +34,8 @@ void registerBuoyEnv({
   Map<String, String>? vars,
   List<RequiredEnvVar>? requiredEnvVars,
 }) {
+  // Night modals draw the shared ToolBackground; publish it once (idempotent).
+  installToolBackground();
   if (vars != null || requiredEnvVars != null) {
     BuoyEnv.instance.configure(vars: vars, requiredEnvVars: requiredEnvVars);
   }

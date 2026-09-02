@@ -12,9 +12,9 @@ Color methodBadgeColor(String method) => switch (method.toUpperCase()) {
   'GET' => BuoyColors.success,
   'POST' => BuoyColors.primary,
   'PUT' => BuoyColors.warning,
-  'PATCH' => BuoyColors.textSecondary,
+  'PATCH' => NightColor.textSecondary,
   'DELETE' => BuoyColors.error,
-  'HEAD' => BuoyColors.textMuted,
+  'HEAD' => NightColor.textTertiary,
   'OPTIONS' => BuoyColors.primary,
   _ => const Color(0xFF6B7280),
 };
@@ -81,13 +81,14 @@ class ContentTypeBadge extends StatelessWidget {
 }
 
 /// Ports shared-ui Badge.tsx `getTypeColor` — data-type → color. string/number/
-/// boolean → primary; object/array/function → textSecondary; null/undefined →
-/// textMuted; anything else (e.g. `url`) → textMuted.
+/// boolean → primary; object/array/function → night textSecondary; null/
+/// undefined → night textTertiary; anything else (e.g. `url`) → textTertiary.
+/// (Night sweep: the neutral tones moved from buoyColors to the night tokens.)
 Color typeBadgeColor(String type) => switch (type.toLowerCase()) {
   'string' || 'number' || 'boolean' => BuoyColors.primary,
-  'object' || 'array' || 'function' => BuoyColors.textSecondary,
-  'null' || 'undefined' => BuoyColors.textMuted,
-  _ => BuoyColors.textMuted,
+  'object' || 'array' || 'function' => NightColor.textSecondary,
+  'null' || 'undefined' => NightColor.textTertiary,
+  _ => NightColor.textTertiary,
 };
 
 /// Ports shared-ui Badge.tsx `TypeBadge` (size="small") — a data-type chip used

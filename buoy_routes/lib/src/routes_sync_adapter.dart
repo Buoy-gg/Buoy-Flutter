@@ -88,11 +88,43 @@ final routeEventsSyncAdapter = ToolSyncAdapter(
     // Navigate the device to a concrete path (the dashboard resolves any
     // dynamic params into a concrete path before invoking this).
     'navigate': (params) {
-      final path = _asMap(params)?['path'] as String?;
+      final map = _asMap(params);
+      final path = map?['path'] as String?;
       if (path == null) {
         throw ArgumentError("navigate requires a 'path' param");
       }
-      return BuoyRoutesController.instance.navigate(path);
+      // RN: `replace: true` swaps the current entry instead of pushing.
+      final replace = map?['replace'] == true;
+      return BuoyRoutesController.instance.navigate(path, replace: replace);
+    },
+    // Where the app is RIGHT NOW, for a remote driver that just navigated
+    // and wants to confirm it landed (RN `getCurrentRoute`): the latest
+    // route event, else the focused stack entry, else nothing.
+    'getCurrentRoute': (_) {
+      final events = RouteEventStore.instance.getEvents();
+      if (events.isNotEmpty) {
+        final latest = events.first;
+        return {
+          'path': latest.pathname,
+          'params': latest.params,
+          'at': latest.timestamp,
+          'source': 'event',
+        };
+      }
+      final stack = NavigationStackStore.instance.getStack();
+      final focused = stack.cast<dynamic>().firstWhere(
+            (s) => s.isFocused == true,
+            orElse: () => stack.isEmpty ? null : stack.last,
+          );
+      if (focused != null && (focused.pathname as String).isNotEmpty) {
+        return {
+          'path': focused.pathname,
+          'params': focused.params ?? const <String, Object?>{},
+          'at': null,
+          'source': 'stack',
+        };
+      }
+      return {'path': null, 'params': const <String, Object?>{}, 'at': null, 'source': null};
     },
     // Stack actions — delegate to the live controller (holds the router ref).
     'stackNavigateToIndex': (params) {

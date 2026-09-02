@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, ValueNotifier, debugPrint;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import 'license/license_manager.dart';
 import 'sync/crash_flush.dart';
 import 'sync/wire_budget.dart';
 
@@ -58,11 +61,16 @@ class ToolSyncAdapter {
 }
 
 class BuoySyncClient {
+  static String? _instanceId;
+
   BuoySyncClient({
     required this.deviceName,
     required this.deviceId,
     required this.platform,
     String socketUrl = 'http://localhost:$defaultBrokerPort',
+    this.license,
+    @Deprecated('Pass `license` (a BuoyLicenseManager.state) instead; a bare '
+        'key is validated by an internal manager for compatibility.')
     this.licenseKey,
     this.tools = const {},
     this.throttle = const Duration(milliseconds: 200),
@@ -75,10 +83,19 @@ class BuoySyncClient {
   final String platform;
   final String socketUrl;
 
-  /// When set, the device reports Pro status to the broker after each
-  /// (re)connect — required for the MCP server's data/action tools, which are
-  /// gated on the device's isPro flag.
+  /// The VALIDATED licence state (tier + key) this device announces to the
+  /// broker on every (re)connect and whenever it changes. The MCP server's
+  /// data/action tools are gated on the device's tier, so this must be the
+  /// truth, not a claim — see FLUTTER_TIER_PORT.md.
+  final ValueListenable<BuoyLicenseState>? license;
+
+  /// Legacy: a bare key. Validated by a private [BuoyLicenseManager] on
+  /// [connect] so it announces the real tier rather than `isPro: true`.
   final String? licenseKey;
+
+  BuoyLicenseManager? _ownedLicense;
+  ValueListenable<BuoyLicenseState>? _licenseSource;
+  void Function()? _removeLicenseListener;
   final Map<String, ToolSyncAdapter> tools;
   final Duration throttle;
   final Map<String, Object?> _extraDeviceInfo;
@@ -140,9 +157,16 @@ class BuoySyncClient {
     if (_socket != null) return;
     instance = this;
     registerToolFlusher(_flushNow);
+    _attachLicense();
 
     final nonce =
         '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}-flutter';
+    // Identifies this ISOLATE, not this socket: the broker uses it to tell
+    // "one device, several sockets" from "two apps that pinned the same
+    // deviceId" (flagged as a collision). RN parity: getInstanceId().
+    _instanceId ??=
+        '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}-'
+        '${Random().nextInt(0x7fffffff).toRadixString(36)}';
 
     final socket = io.io(
       socketUrl,
@@ -155,6 +179,7 @@ class BuoySyncClient {
             'extraDeviceInfo': _jsonEncode(_extraDeviceInfo),
             'envVariables': '{}',
             'connectionNonce': nonce,
+            'instanceId': _instanceId,
           })
           .enableReconnection()
           .setReconnectionDelay(1000)
@@ -179,6 +204,10 @@ class BuoySyncClient {
 
   void dispose() {
     unregisterToolFlusher(_flushNow);
+    _removeLicenseListener?.call();
+    _removeLicenseListener = null;
+    _ownedLicense?.dispose();
+    _ownedLicense = null;
     for (final unsub in _unsubs.values) {
       unsub();
     }
@@ -228,13 +257,41 @@ class BuoySyncClient {
     });
   }
 
-  /// Broker treats this event as the authoritative Pro status (the handshake
-  /// value is ignored because real license validation is async). Re-sent on
-  /// every reconnect, matching the RN client.
+  /// Resolve which licence state to announce: the injected listenable, or a
+  /// private manager validating the legacy bare key. Re-announces on change.
+  void _attachLicense() {
+    var source = license;
+    // ignore: deprecated_member_use_from_same_package
+    final legacyKey = licenseKey;
+    if (source == null && legacyKey != null && legacyKey.isNotEmpty) {
+      final owned = BuoyLicenseManager();
+      _ownedLicense = owned;
+      source = owned.state;
+      unawaited(owned.setLicenseKey(legacyKey));
+    }
+    _licenseSource = source;
+    if (source == null) return;
+    void onChange() {
+      if (isConnected) _sendLicense();
+    }
+    source.addListener(onChange);
+    _removeLicenseListener = () => source!.removeListener(onChange);
+  }
+
+  /// Broker treats this event as the authoritative tier (the handshake value
+  /// is ignored because real license validation is async). Sent on every
+  /// (re)connect and whenever the tier resolves or changes, matching the RN
+  /// client — including with no key at all, which announces `anonymous`.
+  ///
+  /// `isPro` stays for brokers older than the tier split; newer ones prefer
+  /// `tier` (`tierFromLicensePayload` in @buoy-gg/sync-broker).
   void _sendLicense() {
-    final key = licenseKey;
-    if (key == null || key.isEmpty) return;
-    _emit('device-license', {'isPro': true, 'licenseKey': key});
+    final state = _licenseSource?.value ?? const BuoyLicenseState();
+    _emit('device-license', {
+      'isPro': state.isPro,
+      'tier': state.tier.name,
+      'licenseKey': state.licenseKey ?? '',
+    });
   }
 
   void _sendSnapshot(String toolId) {

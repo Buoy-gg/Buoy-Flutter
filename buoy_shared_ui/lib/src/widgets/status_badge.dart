@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buoy_core/buoy_core.dart';
 
 import '../macos_colors.dart';
 
@@ -24,9 +25,9 @@ const _statusColors = {
   'error': BuoyColors.error,
   'warning': BuoyColors.warning,
   'info': BuoyColors.primary,
-  'pending': BuoyColors.textSecondary,
+  'pending': NightColor.textSecondary,
   'active': BuoyColors.success,
-  'inactive': BuoyColors.textMuted,
+  'inactive': NightColor.textTertiary,
   'stale': BuoyColors.warning,
   'fetching': BuoyColors.primary,
 };

@@ -121,7 +121,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
     ];
 
     return ColoredBox(
-      color: BuoyColors.base,
+      color: Colors.transparent,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
@@ -172,10 +172,10 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
         decoration: BoxDecoration(
           color: active
               ? BuoyColors.primary.hexAlpha(0x33)
-              : BuoyColors.card,
+              : NightColor.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: active ? BuoyColors.primary : BuoyColors.border,
+            color: active ? BuoyColors.primary : NightColor.border,
             width: active ? 2 : 1,
           ),
           boxShadow: active
@@ -201,7 +201,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: (option.color ?? BuoyColors.textMuted).hexAlpha(0x20),
+                  color: (option.color ?? NightColor.textTertiary).hexAlpha(0x20),
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
@@ -227,13 +227,13 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                           fontFamily: 'monospace',
-                          color: BuoyColors.textMuted,
+                          color: NightColor.textTertiary,
                         )
                       : const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'monospace',
-                          color: BuoyColors.text,
+                          color: NightColor.text,
                         ),
                 ),
               ),
@@ -248,7 +248,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: BuoyColors.text,
+                    color: NightColor.text,
                   ),
                 ),
               ),
@@ -282,8 +282,8 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
   Widget _excludeFiltersCard() {
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      decoration: _cardFill(BuoyColors.card),
-      foregroundDecoration: _cardBorder(BuoyColors.border),
+      decoration: _cardFill(NightColor.surface),
+      foregroundDecoration: _cardBorder(NightColor.border),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +301,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
               style: TextStyle(
                 fontSize: 10,
                 height: 1.4,
-                color: BuoyColors.textSecondary,
+                color: NightColor.textSecondary,
               ),
             ),
           ),
@@ -348,8 +348,8 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
   Widget _availableItemsCard(List<String> suggested) {
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      decoration: _cardFill(BuoyColors.card),
-      foregroundDecoration: _cardBorder(BuoyColors.border),
+      decoration: _cardFill(NightColor.surface),
+      foregroundDecoration: _cardBorder(NightColor.border),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +372,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                         style: const TextStyle(
                           fontSize: 11,
                           fontStyle: FontStyle.italic,
-                          color: BuoyColors.textMuted,
+                          color: NightColor.textTertiary,
                         ),
                       ),
                     ),
@@ -392,9 +392,9 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: BuoyColors.hover,
+                                  color: NightColor.surfaceElevated,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: BuoyColors.border),
+                                  border: Border.all(color: NightColor.border),
                                 ),
                                 child: Row(
                                   children: [
@@ -406,7 +406,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontFamily: 'monospace',
-                                          color: BuoyColors.text,
+                                          color: NightColor.text,
                                         ),
                                       ),
                                     ),
@@ -433,15 +433,15 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
   Widget _howItWorksCard() {
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      decoration: _cardFill(BuoyColors.card),
-      foregroundDecoration: _cardBorder(BuoyColors.border),
+      decoration: _cardFill(NightColor.surface),
+      foregroundDecoration: _cardBorder(NightColor.border),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
             icon: BuoyIcons.filter,
-            iconColor: BuoyColors.textSecondary,
+            iconColor: NightColor.textSecondary,
             title: widget.howItWorksTitle,
           ),
           Padding(
@@ -452,7 +452,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                 fontSize: 11,
                 height: 16 / 11,
                 fontFamily: 'monospace',
-                color: BuoyColors.textSecondary,
+                color: NightColor.textSecondary,
               ),
             ),
           ),
@@ -461,7 +461,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: BuoyColors.border)),
+                border: Border(top: BorderSide(color: NightColor.border)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,7 +475,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                         fontFamily: 'monospace',
-                        color: BuoyColors.textMuted,
+                        color: NightColor.textTertiary,
                       ),
                     ),
                   ),
@@ -486,7 +486,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                         fontSize: 10,
                         height: 1.6,
                         fontFamily: 'monospace',
-                        color: BuoyColors.textMuted,
+                        color: NightColor.textTertiary,
                       ),
                     ),
                 ],
@@ -500,8 +500,8 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
   Widget _previewCard() {
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      decoration: _cardFill(BuoyColors.hover),
-      foregroundDecoration: _cardBorder(BuoyColors.borderStrong),
+      decoration: _cardFill(NightColor.surfaceElevated),
+      foregroundDecoration: _cardBorder(NightColor.fillTertiary),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,9 +516,9 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             decoration: BoxDecoration(
-              color: BuoyColors.base,
+              color: NightColor.bg,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: BuoyColors.border),
+              border: Border.all(color: NightColor.border),
             ),
             child: widget.previewBuilder?.call(context),
           ),

@@ -209,6 +209,36 @@ class UnifiedEventStore {
     }
   }
 
+  /// RN `setLocalEnabledSources` — the ON-DEVICE consumer (the Events modal)
+  /// declares which sources it wants captured: its enabled sources while
+  /// capture is on, `[]` while it is off. Diffed against a ledger so repeated
+  /// declarations are idempotent — remounting the tool, restoring state
+  /// twice, or enabling two display sources that share a discovery source
+  /// never stacks refs the power toggle can't release. (The old imperative
+  /// subscribe/unsubscribe pairs acquired a fresh ref per call site; a
+  /// closed-and-reopened tool could keep capturing with capture "off".)
+  /// Ref-counting still keeps a watching dashboard's subscriptions alive
+  /// independently.
+  void setLocalEnabledSources(Iterable<String> sources) {
+    final nextIds = <String>{};
+    for (final src in sources) {
+      final id = eventSourceToDiscoveryId[src];
+      if (id != null) nextIds.add(id);
+    }
+    final prevIds = Set<String>.from(_localDiscoveryIds);
+    _localDiscoveryIds
+      ..clear()
+      ..addAll(nextIds);
+    for (final id in nextIds) {
+      if (!prevIds.contains(id)) subscribeToSource(id);
+    }
+    for (final id in prevIds) {
+      if (!nextIds.contains(id)) unsubscribeFromSource(id);
+    }
+  }
+
+  final Set<String> _localDiscoveryIds = {};
+
   /// RN `ensureRemoteSourcesDefault` — default to all sources when a dashboard
   /// starts watching, unless it already declared a selection.
   void ensureRemoteSourcesDefault() {

@@ -33,7 +33,7 @@ class BuoyDevTools extends StatefulWidget {
   const BuoyDevTools({
     super.key,
     this.tools = const [],
-    this.deviceName = 'Flutter App',
+    this.deviceName,
     this.deviceId,
     this.socketUrl,
     this.licenseKey,
@@ -46,7 +46,8 @@ class BuoyDevTools extends StatefulWidget {
   /// Desktop-sync identity — mirrors the RN `externalSync` prop. The widget
   /// auto-starts the sync connection on mount (idempotent; an explicit
   /// earlier [Buoy.init] wins).
-  final String deviceName;
+  /// Label in Buoy Desktop / MCP. Default: `Flutter App (<platform> · <last 4 of the id>)`.
+  final String? deviceName;
   final String? deviceId;
   final String? socketUrl;
   final String? licenseKey;

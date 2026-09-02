@@ -377,6 +377,8 @@ class _DialOverlayState extends State<DialOverlay>
           scale: progress,
           child: tool != null
               ? _ToolIcon(
+                  // e2e handle: one per registered tool.
+                  key: ValueKey('buoy-dial-item-${tool.id}'),
                   tool: tool,
                   size: layout.iconSize,
                   onTap: () => _handleIconTap(tool),
@@ -492,6 +494,7 @@ class _CenterButton extends StatelessWidget {
     const outer = dialButtonSize * 1.5; // 120
     const ring = dialButtonSize * 1.2; // 96
     return GestureDetector(
+      key: const ValueKey('buoy-dial-center'),
       onTap: onTap,
       child: SizedBox(
         width: outer,
@@ -578,6 +581,7 @@ class _CenterButton extends StatelessWidget {
 /// near-invisible washes and are omitted.
 class _ToolIcon extends StatefulWidget {
   const _ToolIcon({
+    super.key,
     required this.tool,
     required this.size,
     required this.onTap,

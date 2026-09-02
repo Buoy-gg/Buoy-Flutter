@@ -40,7 +40,10 @@ export 'src/automation_runner.dart'
         hashStringToU32,
         clampRunsPerCase,
         clampCoolDownMs,
-        clampDiscardWarmup;
+        clampDiscardWarmup,
+        withBatchWarmup,
+        warmupCaseName,
+        isWarmupRun;
 export 'src/automation_settings.dart';
 export 'src/case_sets.dart';
 export 'src/parse_automation_cases.dart';

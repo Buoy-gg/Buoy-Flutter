@@ -1,25 +1,36 @@
 import 'dart:math' as math;
-import '../../icons/buoy_icon_painter.dart';
-import '../../icons/buoy_icons.dart';
 
 import 'package:flutter/material.dart';
 
+import '../../buoy.dart';
+import '../../icons/buoy_icon_painter.dart';
+import '../../icons/buoy_icons.dart';
+import '../../license/keygen.dart';
+import '../../license/license_manager.dart';
 import '../../storage.dart';
 import '../../sync_client.dart';
 import '../../tool.dart';
-import '../buoy_theme.dart';
 import '../modal/js_modal.dart';
 import '../modal/modal_settings.dart';
+import '../night/night_primitives.dart';
+import '../night/night_theme.dart';
 import '../touchable_opacity.dart';
 
-/// The dev-tools settings modal — port of the RN `DevToolsSettingsModal`:
-/// a [JsModal] (bottom-sheet mode, 1/3 screen height, mode/size persisted
-/// under `@react_buoy_settings`) with the FLOATING / SETTINGS / PRO tabs as
-/// its header.
+/// The shared background switcher (RN `BackgroundSwitcher`), mounted in the
+/// SETTINGS tab's Background card. Lives in buoy_shared_ui with the presets,
+/// so it reaches this sheet through a seam — `installToolBackground()` sets
+/// it. Null = the Background section is not shown (bare-core install).
+WidgetBuilder? backgroundSwitcherBuilder;
+
+/// The dev-tools settings modal — port of the RN `DevToolsSettingsModal` in
+/// its night form: a [JsModal] (bottom-sheet mode, 1/3 screen height,
+/// mode/size persisted under `@react_buoy_settings`) with a [NightSegmented]
+/// Floating / Settings / Pro header, and each tab as labelled [NightCard]
+/// sections of hairline-separated rows.
 ///
-/// Deviations from RN: the global settings cards (shared modal size,
-/// expandable window controls) and the dev-only export-config card aren't
-/// ported; PRO is display-only (license flow not wired).
+/// Deviations from RN: no dev-only export-config card; the Upgrade button is
+/// display-only (no licence-entry modal yet — the key comes from
+/// `BuoyDevTools(licenseKey:)`); no Live Sky scrubber (no Flutter renderer).
 class SettingsSheet extends StatefulWidget {
   const SettingsSheet({
     super.key,
@@ -45,6 +56,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
   BuoyDevToolsSettings? _settings;
 
   bool _storageExpanded = false;
+  bool _syncExpanded = false;
   List<String>? _savedKeys;
   bool _clearing = false;
   bool _clearSuccess = false;
@@ -109,117 +121,6 @@ class _SettingsSheetState extends State<SettingsSheet> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context);
-    final topInset = MediaQuery.viewPaddingOf(context).top;
-    // RN: modalHeight = floor(screenHeight * 0.33), modalWidth used for the
-    // floating-mode initial position.
-    final modalWidth = math.min(screen.width - 32, 400.0);
-    return JsModal(
-      storage: widget.storage,
-      persistenceKey: '@react_buoy_settings',
-      initialMode: JsModalMode.bottomSheet,
-      initialHeight: (screen.height * 0.33).floorToDouble(),
-      initialFloatingPosition: Offset(
-        (screen.width - modalWidth) / 2,
-        topInset + 20,
-      ),
-      onClose: widget.onClose,
-      headerContent: _tabSelector(),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: switch (_tab) {
-          'settings' => _settingsTab(),
-          'pro' => _proTab(),
-          _ => _floatingTab(),
-        },
-      ),
-    );
-  }
-
-  /// RN TabSelector: pill container (hover bg, 1px border, radius 6,
-  /// padding 2), flex buttons, active = teal-20 bg + teal border.
-  Widget _tabSelector() {
-    return Padding(
-      // Top spacing clears the drag indicator + window controls so the
-      // header lands at RN's 56px minHeight.
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      // RN TabSelector: fixed 28px height, hover bg, radius 6, padding 2;
-      // buttons flex with 8/3 padding; 12px w600 text, NOT monospace.
-      child: Container(
-        height: 28,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: BuoyTheme.hover,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: BuoyTheme.border),
-        ),
-        child: Row(
-          children: [
-            for (final tab in _tabs)
-              Expanded(
-                child: TouchableOpacity(
-                  onTap: () => _selectTab(tab),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: _tab == tab
-                          ? BuoyTheme.teal.withValues(alpha: 0.13)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: _tab == tab
-                            ? BuoyTheme.teal
-                            : Colors.transparent,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      tab.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                        color: _tab == tab ? BuoyTheme.teal : BuoyTheme.muted,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── FLOATING tab ──────────────────────────────────────────────────────
-
-  Widget _floatingTab() {
-    final settings = _settings;
-    if (settings == null) return const SizedBox.shrink();
-    return Column(
-      children: [
-        for (final tool in widget.tools)
-          _ToolCard(
-            label: tool.name.toUpperCase(),
-            description: tool.description ?? '',
-            icon: tool.icon(16, tool.color),
-            value: settings.floatingTools[tool.id] ?? false,
-            onToggle: () => _toggleFloatingTool(tool.id),
-          ),
-        _ToolCard(
-          label: 'ENV BADGE',
-          description: 'Environment badge.',
-          icon: const BuoyGlyph(BuoyIcons.globe, size: 16, color: BuoyTheme.teal),
-          value: settings.floatingTools['environment'] ?? false,
-          onToggle: () => _toggleFloatingTool('environment'),
-        ),
-      ],
-    );
-  }
-
   void _toggleGlobalSetting(String key) {
     final settings = _settings;
     if (settings == null) return;
@@ -241,244 +142,477 @@ class _SettingsSheetState extends State<SettingsSheet> {
     });
   }
 
-  // ── SETTINGS tab ──────────────────────────────────────────────────────
-
-  Widget _settingsTab() {
-    final settings = _settings;
-    return Column(
-      children: [
-        _storageCard(),
-        _desktopSyncCard(),
-        if (settings != null) ...[
-          _GlobalSettingCard(
-            label: 'SHARED MODAL SIZE',
-            category: 'MODAL',
-            shortDescription: 'Sync dimensions across all tools',
-            fullDescription:
-                'When enabled, all tool modals will share the same size and '
-                'position. Resizing one modal will affect all others. When '
-                'disabled, each tool remembers its own size and position '
-                'independently.',
-            recommendation:
-                "Keep OFF for the best experience. This allows you to "
-                "customize each tool's modal size separately. Enable only if "
-                'you prefer uniform modal sizes across all dev tools.',
-            value: settings.enableSharedModalDimensions,
-            expanded: _expandedSettings.contains('enableSharedModalDimensions'),
-            onToggle: () => _toggleGlobalSetting('enableSharedModalDimensions'),
-            onExpandToggle: () =>
-                _toggleSettingExpanded('enableSharedModalDimensions'),
-          ),
-          _GlobalSettingCard(
-            label: 'EXPAND CONTROLS',
-            category: 'MODAL',
-            shortDescription: 'iPad-style expandable window buttons',
-            fullDescription:
-                'When enabled, the window control buttons (minimize, toggle '
-                'mode, close) start as small dots and expand into larger, '
-                'easy-to-tap buttons when pressed — similar to iPad window '
-                'controls. When disabled, buttons are directly tappable at '
-                'their small size.',
-            recommendation:
-                'Keep ON for touch devices where the small buttons are hard '
-                'to press. Turn OFF if you prefer direct single-tap access '
-                '(e.g. when using a mouse or simulator).',
-            value: settings.expandableWindowControls,
-            expanded: _expandedSettings.contains('expandableWindowControls'),
-            onToggle: () => _toggleGlobalSetting('expandableWindowControls'),
-            onExpandToggle: () =>
-                _toggleSettingExpanded('expandableWindowControls'),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _storageCard() {
-    final keys = _savedKeys;
-    return _StatusCard(
-      icon: BuoyIcons.database,
-      accent: BuoyTheme.teal,
-      label: 'STORAGE TYPE',
-      badge: 'SHARED PREFERENCES',
-      badgeIcon: BuoyIcons.checkCircle,
-      description:
-          'Settings persist via the platform preferences store and survive '
-          'app restarts.',
-      onHeaderTap: _toggleStorageExpanded,
-      expanded: _storageExpanded,
-      expandedChild: _storageExpanded
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const BuoyGlyph(
-                      BuoyIcons.fileText,
-                      size: 14,
-                      color: BuoyTheme.teal,
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'SAVED SETTINGS',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                          color: BuoyTheme.teal,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      keys == null ? '...' : '${keys.length} keys',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: BuoyTheme.muted,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                if (keys == null)
-                  const Text(
-                    'Loading...',
-                    style: TextStyle(fontSize: 11, color: BuoyTheme.muted),
-                  )
-                else if (keys.isEmpty)
-                  const Text(
-                    'No settings saved yet',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: BuoyTheme.muted,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  )
-                else
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 150),
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        for (final key in keys)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: BuoyTheme.hover,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: BuoyTheme.border.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Text(
-                              key.replaceFirst('@react_buoy_', ''),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontFamily: 'monospace',
-                                color: BuoyTheme.textSecondary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            )
-          : null,
-      footer: TouchableOpacity(
-        activeOpacity: 0.7,
-        onTap: _clearStorage,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: (_clearSuccess ? BuoyTheme.teal : BuoyTheme.error)
-                .withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: (_clearSuccess ? BuoyTheme.teal : BuoyTheme.error)
-                  .withValues(alpha: 0.25),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 8,
-            children: [
-              BuoyGlyph(
-                _clearSuccess ? BuoyIcons.checkCircle : BuoyIcons.trash2,
-                size: 14,
-                color: _clearSuccess
-                    ? BuoyTheme.teal
-                    : (_clearing ? BuoyTheme.muted : BuoyTheme.error),
-              ),
-              Text(
-                _clearSuccess
-                    ? 'CLEARED'
-                    : _clearing
-                    ? 'CLEARING...'
-                    : 'CLEAR ALL SETTINGS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: _clearSuccess
-                      ? BuoyTheme.teal
-                      : (_clearing ? BuoyTheme.muted : BuoyTheme.error),
-                ),
-              ),
-            ],
-          ),
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+    // RN: modalHeight = floor(screenHeight * 0.33), modalWidth used for the
+    // floating-mode initial position.
+    final modalWidth = math.min(screen.width - 32, 400.0);
+    return JsModal(
+      storage: widget.storage,
+      persistenceKey: '@react_buoy_settings',
+      initialMode: JsModalMode.bottomSheet,
+      initialHeight: (screen.height * 0.33).floorToDouble(),
+      initialFloatingPosition: Offset(
+        (screen.width - modalWidth) / 2,
+        topInset + 20,
+      ),
+      onClose: widget.onClose,
+      headerContent: _header(),
+      child: Padding(
+        // RN scrollContainer: gutter 16, top 8, bottom 24, gap 24.
+        padding: const EdgeInsets.fromLTRB(Night.gutter, 8, Night.gutter, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: Night.groupGap,
+          children: switch (_tab) {
+            'settings' => _settingsSections(),
+            'pro' => _proSections(),
+            _ => _floatingSections(),
+          },
         ),
       ),
     );
   }
 
+  /// RN headerRow: the NightSegmented tabs, gutter padding, 8 below.
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Night.gutter, 0, Night.gutter, 8),
+      child: NightSegmented(
+        tabs: const [
+          (key: 'floating', label: 'Floating'),
+          (key: 'settings', label: 'Settings'),
+          (key: 'pro', label: 'Pro'),
+        ],
+        activeKey: _tab,
+        onChange: _selectTab,
+      ),
+    );
+  }
+
+  /// RN renderSection: uppercase label, card, optional footnote under it.
+  Widget _section(String label, Widget card, {Widget? footnote}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [NightSectionLabel(label), card, ?footnote],
+    );
+  }
+
+  // ── FLOATING tab ──────────────────────────────────────────────────────
+
+  List<Widget> _floatingSections() {
+    final settings = _settings;
+    if (settings == null) return const [SizedBox.shrink()];
+    return [
+      _section(
+        'Floating Tools',
+        NightCard(
+          child: NightRows(
+            children: [
+              for (final tool in widget.tools)
+                _toolRow(
+                  icon: tool.icon(18, tool.color),
+                  label: tool.name,
+                  description: tool.description ?? '',
+                  value: settings.floatingTools[tool.id] ?? false,
+                  onToggle: () => _toggleFloatingTool(tool.id),
+                ),
+              _toolRow(
+                icon: const BuoyGlyph(BuoyIcons.globe, size: 18, color: NightColor.accent),
+                label: 'Env Badge',
+                description: 'Environment badge.',
+                value: settings.floatingTools['environment'] ?? false,
+                onToggle: () => _toggleFloatingTool('environment'),
+              ),
+            ],
+          ),
+        ),
+        footnote: const NightFootnote(
+          'Tools switched on here appear in the floating bubble row.',
+        ),
+      ),
+    ];
+  }
+
+  /// RN renderToolRow: glyph (24 slot), name + one-line description, switch.
+  /// Row: gap 12, padH 16, padV 12.
+  Widget _toolRow({
+    required Widget icon,
+    required String label,
+    required String description,
+    required bool value,
+    required VoidCallback onToggle,
+  }) {
+    return TouchableOpacity(
+      activeOpacity: 0.7,
+      onTap: onToggle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Night.rowPadH, vertical: 12),
+        child: Row(
+          spacing: 12,
+          children: [
+            SizedBox(width: 24, child: Center(child: icon)),
+            Expanded(child: _rowInfo(label, description)),
+            NightSwitch(value: value, onChanged: (_) => onToggle()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// RN rowInfo: label 15/500 text, caption 12 tertiary, gap 2.
+  Widget _rowInfo(String label, String? caption, {int? captionLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      spacing: 2,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: NightColor.text,
+            fontSize: NightFont.row,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (caption != null && caption.isNotEmpty)
+          Text(
+            caption,
+            maxLines: captionLines,
+            overflow: captionLines == null ? null : TextOverflow.ellipsis,
+            style: const TextStyle(color: NightColor.textTertiary, fontSize: NightFont.label),
+          ),
+      ],
+    );
+  }
+
+  // ── SETTINGS tab ──────────────────────────────────────────────────────
+
+  List<Widget> _settingsSections() {
+    final settings = _settings;
+    final switcher = backgroundSwitcherBuilder;
+    return [
+      // Tool background — the shipping mount of the shared background
+      // switcher. It writes to shared-ui's persisted store, so the pick
+      // applies to every tool modal at once.
+      if (switcher != null)
+        _section(
+          'Background',
+          NightCard(padded: true, child: Builder(builder: switcher)),
+        ),
+      _section('Storage', _storageCard()),
+      if (BuoySyncClient.instance != null) _section('Desktop Sync', _desktopSyncCard()),
+      if (settings != null)
+        _section(
+          'Modal Behavior',
+          NightCard(
+            child: NightRows(
+              children: [
+                _globalSettingRow(
+                  'enableSharedModalDimensions',
+                  'Shared Modal Size',
+                  'Sync dimensions across all tools',
+                  'When enabled, all tool modals will share the same size and '
+                      'position. Resizing one modal will affect all others. When '
+                      'disabled, each tool remembers its own size and position '
+                      'independently.',
+                  "Keep OFF for the best experience. This allows you to "
+                      "customize each tool's modal size separately.",
+                  settings.enableSharedModalDimensions,
+                ),
+                _globalSettingRow(
+                  'expandableWindowControls',
+                  'Expand Controls',
+                  'iPad-style expandable window buttons',
+                  'When enabled, the window control buttons (minimize, toggle '
+                      'mode, close) start as small dots and expand into larger, '
+                      'easy-to-tap buttons when pressed. When disabled, buttons '
+                      'are directly tappable at their small size.',
+                  'Keep ON for touch devices where the small buttons are hard '
+                      'to press. Turn OFF if you prefer direct single-tap access.',
+                  settings.expandableWindowControls,
+                ),
+              ],
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// RN settingRow: gap 10, padH 16, padV 14, minHeight 52.
+  Widget _settingRow({
+    required List<Widget> children,
+    VoidCallback? onTap,
+    String? semanticsLabel,
+  }) {
+    final row = Container(
+      constraints: const BoxConstraints(minHeight: 52),
+      padding: const EdgeInsets.symmetric(horizontal: Night.rowPadH, vertical: Night.rowPadV),
+      child: Row(spacing: 10, children: children),
+    );
+    if (onTap == null) return row;
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: TouchableOpacity(activeOpacity: 0.7, onTap: onTap, child: row),
+    );
+  }
+
+  /// RN settingRowBody: padH 16, padBottom 14, gap 6; text 13 secondary
+  /// (lineHeight 1.45), hint 13 tertiary.
+  Widget _rowBody(List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Night.rowPadH, 0, Night.rowPadH, Night.rowPadV),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 6,
+        children: children,
+      ),
+    );
+  }
+
+  static const _bodyText = TextStyle(
+    color: NightColor.textSecondary,
+    fontSize: NightFont.caption,
+    height: 1.45,
+  );
+  static const _bodyHint = TextStyle(
+    color: NightColor.textTertiary,
+    fontSize: NightFont.caption,
+    height: 1.45,
+  );
+
+  Widget _chevron(bool expanded) => BuoyGlyph(
+        expanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
+        size: 16,
+        color: NightColor.textTertiary,
+      );
+
+  /// RN renderGlobalSettingRow: name + one-line hint, switch, and a
+  /// tap-to-expand body holding the full description and recommendation.
+  Widget _globalSettingRow(
+    String key,
+    String label,
+    String shortDescription,
+    String fullDescription,
+    String recommendation,
+    bool value,
+  ) {
+    final expanded = _expandedSettings.contains(key);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _settingRow(
+          onTap: () => _toggleSettingExpanded(key),
+          semanticsLabel: label,
+          children: [
+            Expanded(
+              child: _rowInfo(label, shortDescription, captionLines: expanded ? null : 1),
+            ),
+            NightSwitch(value: value, onChanged: (_) => _toggleGlobalSetting(key)),
+          ],
+        ),
+        if (expanded)
+          _rowBody([
+            Text(fullDescription, style: _bodyText),
+            Text(recommendation, style: _bodyHint),
+          ]),
+      ],
+    );
+  }
+
+  /// Storage — backend status, saved keys, and the clear action. Flutter's
+  /// backend is always shared_preferences (RN's filesystem / asyncstorage /
+  /// memory ladder has no analogue), so the badge is a constant.
+  Widget _storageCard() {
+    final keys = _savedKeys;
+    return NightCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _settingRow(
+            onTap: _toggleStorageExpanded,
+            semanticsLabel: 'Storage Type',
+            children: [
+              Expanded(child: _rowInfo('Storage Type', null)),
+              const NightBadge('Shared Preferences', tone: NightBadgeTone.accent),
+              _chevron(_storageExpanded),
+            ],
+          ),
+          if (_storageExpanded) ...[
+            _rowBody(const [
+              Text(
+                'Settings persist via the platform preferences store and '
+                'survive app restarts.',
+                style: _bodyText,
+              ),
+            ]),
+            const NightSeparator(),
+            // RN storageExpanded: padH 16, padV 12, gap 8.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Night.rowPadH, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 8,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'SAVED SETTINGS',
+                          style: TextStyle(
+                            color: NightColor.textSecondary,
+                            fontSize: NightFont.micro,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        keys == null ? '…' : '${keys.length} keys',
+                        style: const TextStyle(color: NightColor.textTertiary, fontSize: NightFont.micro),
+                      ),
+                    ],
+                  ),
+                  if (keys == null)
+                    const Text('Loading…', style: _keyEmpty)
+                  else if (keys.isEmpty)
+                    const Text('No settings saved yet', style: _keyEmpty)
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final key in keys)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: NightColor.surfaceElevated,
+                                  borderRadius: BorderRadius.circular(NightRadius.segment),
+                                ),
+                                child: Text(
+                                  key.replaceFirst('@react_buoy_', ''),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: NightColor.textSecondary,
+                                    fontSize: NightFont.micro,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // The destructive action lives inside the expansion on purpose —
+            // expand-then-tap is two deliberate steps. RN cardButtonWrap.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Night.cardPad, 10, Night.cardPad, Night.cardPad),
+              child: NightButton(
+                label: _clearSuccess
+                    ? 'Cleared'
+                    : _clearing
+                        ? 'Clearing…'
+                        : 'Clear All Settings',
+                variant: _clearSuccess ? NightButtonVariant.secondary : NightButtonVariant.destructive,
+                size: NightButtonSize.md,
+                disabled: _clearing,
+                onTap: _clearStorage,
+                icon: BuoyGlyph(
+                  _clearSuccess ? BuoyIcons.checkCircle : BuoyIcons.trash2,
+                  size: 15,
+                  color: _clearSuccess
+                      ? NightColor.accent
+                      : _clearing
+                          ? NightColor.textTertiary
+                          : NightColor.danger,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static const _keyEmpty = TextStyle(
+    color: NightColor.textTertiary,
+    fontSize: NightFont.caption,
+    fontStyle: FontStyle.italic,
+  );
+
+  /// Desktop sync — hidden until the client exists (see the caller).
   Widget _desktopSyncCard() {
-    final client = BuoySyncClient.instance;
-    if (client == null) return const SizedBox.shrink();
+    final client = BuoySyncClient.instance!;
     return ValueListenableBuilder<BuoySyncStatus>(
       valueListenable: client.status,
       builder: (context, status, _) {
         final connected = status.state == BuoySyncState.connected;
-        final accent = connected ? BuoyTheme.teal : BuoyTheme.warning;
-        return _StatusCard(
-          icon: BuoyIcons.globe,
-          accent: accent,
-          label: 'DESKTOP SYNC',
-          badge: switch (status.state) {
-            BuoySyncState.connected => 'CONNECTED',
-            BuoySyncState.connecting => 'CONNECTING...',
-            BuoySyncState.retrying => 'RETRYING',
-          },
-          badgeIcon: connected
-              ? BuoyIcons.checkCircle
-              : BuoyIcons.alertTriangle,
-          description: connected
-              ? 'Streaming tool data to Buoy Desktop at ${status.targetUrl}'
-              : 'Trying to reach Buoy Desktop at ${status.targetUrl} — is '
-                    'the desktop app running?',
-          footer:
-              status.state == BuoySyncState.retrying && status.lastError != null
-              ? Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: BuoyTheme.warning.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Last error: ${status.lastError}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: BuoyTheme.textSecondary,
+        return NightCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _settingRow(
+                onTap: () => setState(() => _syncExpanded = !_syncExpanded),
+                semanticsLabel: 'Buoy Desktop',
+                children: [
+                  Expanded(child: _rowInfo('Buoy Desktop', null)),
+                  switch (status.state) {
+                    BuoySyncState.connected => const NightBadge('Connected', tone: NightBadgeTone.accent),
+                    BuoySyncState.connecting => const NightBadge('Connecting…'),
+                    BuoySyncState.retrying => const NightBadge('Retrying', tone: NightBadgeTone.warning),
+                  },
+                  _chevron(_syncExpanded),
+                ],
+              ),
+              if (_syncExpanded)
+                _rowBody([
+                  Text.rich(
+                    TextSpan(
+                      style: _bodyText,
+                      children: [
+                        TextSpan(
+                          text: connected
+                              ? 'Streaming tool data to Buoy Desktop at '
+                              : 'Trying to reach Buoy Desktop at ',
+                        ),
+                        TextSpan(
+                          text: status.targetUrl,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: NightFont.label,
+                            color: NightColor.textSecondary,
+                          ),
+                        ),
+                        if (!connected)
+                          const TextSpan(
+                            text: ' — is the desktop app running? Override with the '
+                                'socketUrl option if it runs elsewhere.',
+                          ),
+                      ],
                     ),
                   ),
-                )
-              : null,
+                  if (status.state == BuoySyncState.retrying && status.lastError != null)
+                    Text(
+                      'Last error: ${status.lastError}',
+                      style: _bodyText.copyWith(color: NightColor.warning),
+                    ),
+                ]),
+            ],
+          ),
         );
       },
     );
@@ -486,601 +620,81 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   // ── PRO tab ───────────────────────────────────────────────────────────
 
-  Widget _proTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sectionHeader(
-          BuoyIcons.zap,
-          'LICENSE STATUS',
-          badge: 'Free',
-          badgeColor: BuoyTheme.muted,
-        ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(4, 8, 4, 20),
-          child: Text(
-            'Upgrade to Pro to unlock all features and support development.',
-            style: TextStyle(fontSize: 12, color: BuoyTheme.textSecondary),
-          ),
-        ),
-        _sectionHeader(BuoyIcons.checkCircle, 'PRO FEATURES'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  List<Widget> _proSections() {
+    return [
+      ValueListenableBuilder<BuoyLicenseState>(
+        valueListenable: Buoy.license.state,
+        builder: (context, license, _) {
+          // The badge reads the VALIDATED tier — a free key must not read as
+          // Pro anywhere.
+          final badge = switch (license.tier) {
+            BuoyTier.pro => const NightBadge('Active', tone: NightBadgeTone.accent),
+            BuoyTier.free => const NightBadge('Free'),
+            BuoyTier.anonymous => const NightBadge('Free'),
+          };
+          final footnote = license.isPro
+              ? 'You have full access to all Buoy DevTools features.'
+              : license.isValidating
+                  ? 'Checking your license…'
+                  : license.error != null
+                      ? 'License check failed: ${license.error}.'
+                      : 'Upgrade to Pro to unlock all features and support development.';
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: Night.groupGap,
             children: [
-              for (final feature in const [
-                'Advanced Settings',
-                'Export Configuration',
-                'Team Defaults',
-                'Priority Support',
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    spacing: 8,
+              _section(
+                'License',
+                NightCard(
+                  child: _settingRow(
                     children: [
-                      const BuoyGlyph(
-                        BuoyIcons.checkCircle,
-                        size: 14,
-                        color: BuoyTheme.teal,
-                      ),
-                      Text(
-                        feature,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: BuoyTheme.secondary,
-                        ),
-                      ),
+                      Expanded(child: _rowInfo('License Status', null)),
+                      badge,
                     ],
                   ),
                 ),
-            ],
-          ),
-        ),
-        TouchableOpacity(
-          activeOpacity: 0.8,
-          // License flow not wired yet — press feedback only.
-          onTap: () {},
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: BuoyTheme.teal,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 8,
-              children: [
-                BuoyGlyph(BuoyIcons.zap, size: 16, color: BuoyTheme.base),
-                Text(
-                  'Upgrade to Pro',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: BuoyTheme.base,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _sectionHeader(
-    LucideIcon icon,
-    String title, {
-    String? badge,
-    Color badgeColor = BuoyTheme.teal,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 16,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: BuoyTheme.teal,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        BuoyGlyph(icon, size: 12, color: BuoyTheme.teal),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-              color: BuoyTheme.teal,
-            ),
-          ),
-        ),
-        if (badge != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
-            ),
-            child: Text(
-              badge,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: badgeColor,
+                footnote: NightFootnote(footnote),
               ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// RN `glassCard` tool row: icon chip + name/description + ON/OFF pill.
-class _ToolCard extends StatelessWidget {
-  const _ToolCard({
-    required this.label,
-    required this.description,
-    required this.icon,
-    required this.value,
-    required this.onToggle,
-  });
-
-  final String label;
-  final String description;
-  final Widget icon;
-  final bool value;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return TouchableOpacity(
-      activeOpacity: 0.85,
-      onTap: onToggle,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-        decoration: BoxDecoration(
-          color: value
-              ? BuoyTheme.teal.withValues(alpha: 0.03)
-              : BuoyTheme.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: value
-                ? BuoyTheme.teal.withValues(alpha: 0.31)
-                : BuoyTheme.border,
-          ),
-        ),
-        child: Row(
-          spacing: 12,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: value
-                    ? BuoyTheme.teal.withValues(alpha: 0.13)
-                    : BuoyTheme.hover,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(child: icon),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: BuoyTheme.secondary,
-                    ),
-                  ),
-                  if (description.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: BuoyTheme.muted,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Container(
-              constraints: const BoxConstraints(minWidth: 48),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: value
-                    ? BuoyTheme.teal.withValues(alpha: 0.13)
-                    : BuoyTheme.hover,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: value ? BuoyTheme.teal : BuoyTheme.border,
-                ),
-              ),
-              child: Text(
-                value ? 'ON' : 'OFF',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                  color: value ? BuoyTheme.teal : BuoyTheme.muted,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// RN `renderGlobalSettingCard`: expandable card with category badge, title,
-/// short description (collapsed), ON/OFF pill, chevron; expands to
-/// DESCRIPTION + RECOMMENDATION sections with a teal glow border.
-class _GlobalSettingCard extends StatelessWidget {
-  const _GlobalSettingCard({
-    required this.label,
-    required this.category,
-    required this.shortDescription,
-    required this.fullDescription,
-    required this.recommendation,
-    required this.value,
-    required this.expanded,
-    required this.onToggle,
-    required this.onExpandToggle,
-  });
-
-  final String label;
-  final String category;
-  final String shortDescription;
-  final String fullDescription;
-  final String recommendation;
-  final bool value;
-  final bool expanded;
-  final VoidCallback onToggle;
-  final VoidCallback onExpandToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TouchableOpacity(
-        activeOpacity: 0.85,
-        onTap: onExpandToggle,
-        child: Transform.scale(
-          scale: expanded ? 1.01 : 1,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: BuoyTheme.card,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: expanded ? BuoyTheme.teal : BuoyTheme.border,
-                width: expanded ? 2 : 1,
-              ),
-              boxShadow: expanded
-                  ? [
-                      BoxShadow(
-                        color: BuoyTheme.teal.withValues(alpha: 0.35),
-                        blurRadius: 20,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  spacing: 12,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: BuoyTheme.teal.withValues(alpha: 0.13),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: BuoyTheme.teal.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Text(
-                        category,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: BuoyTheme.teal,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'monospace',
-                              color: BuoyTheme.secondary,
-                            ),
-                          ),
-                          if (!expanded)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                shortDescription,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: BuoyTheme.muted,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    TouchableOpacity(
-                      activeOpacity: 0.8,
-                      onTap: onToggle,
-                      child: Container(
-                        constraints: const BoxConstraints(minWidth: 48),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: value
-                              ? BuoyTheme.teal.withValues(alpha: 0.2)
-                              : BuoyTheme.hover,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: value
-                                ? BuoyTheme.teal.withValues(alpha: 0.53)
-                                : BuoyTheme.border,
-                          ),
-                          boxShadow: value
-                              ? [
-                                  BoxShadow(
-                                    color: BuoyTheme.teal.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                    blurRadius: 8,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Text(
-                          value ? 'ON' : 'OFF',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                            color: value ? BuoyTheme.teal : BuoyTheme.muted,
-                          ),
-                        ),
-                      ),
-                    ),
-                    BuoyGlyph(
-                      expanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
-                      size: 18,
-                      color: const Color(0xFF7F91B2),
-                    ),
-                  ],
-                ),
-                if (expanded)
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    padding: const EdgeInsets.only(top: 12),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: BuoyTheme.border.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              if (!license.isPro) ...[
+                _section(
+                  'Pro Features',
+                  NightCard(
+                    child: NightRows(
                       children: [
-                        _section('DESCRIPTION', fullDescription),
-                        _section('RECOMMENDATION', recommendation),
+                        for (final feature in const ['Advanced Settings', 'Priority Support'])
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: Night.rowPadH, vertical: 12),
+                            child: Row(
+                              spacing: 10,
+                              children: [
+                                const BuoyGlyph(BuoyIcons.checkCircle, size: 16, color: NightColor.accent),
+                                Text(
+                                  feature,
+                                  style: const TextStyle(
+                                    color: NightColor.text,
+                                    fontSize: NightFont.row,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
+                ),
+                // Display-only until a licence-entry modal is ported; the key
+                // comes from BuoyDevTools(licenseKey:).
+                NightButton(
+                  label: 'Upgrade to Pro',
+                  variant: NightButtonVariant.primary,
+                  onTap: () {},
+                ),
               ],
-            ),
-          ),
-        ),
+            ],
+          );
+        },
       ),
-    );
-  }
-
-  Widget _section(String title, String body) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-              color: BuoyTheme.teal,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            style: const TextStyle(
-              fontSize: 12,
-              height: 18 / 12,
-              color: BuoyTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// RN `storageStatusCard`: icon chip, LABEL, colored badge row, description,
-/// optional expandable body and footer.
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({
-    required this.icon,
-    required this.accent,
-    required this.label,
-    required this.badge,
-    required this.badgeIcon,
-    required this.description,
-    this.onHeaderTap,
-    this.expanded = false,
-    this.expandedChild,
-    this.footer,
-  });
-
-  final LucideIcon icon;
-  final Color accent;
-  final String label;
-  final String badge;
-  final LucideIcon badgeIcon;
-  final String description;
-  final VoidCallback? onHeaderTap;
-  final bool expanded;
-  final Widget? expandedChild;
-  final Widget? footer;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BuoyTheme.card,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: expanded ? accent.withValues(alpha: 0.38) : BuoyTheme.border,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TouchableOpacity(
-            activeOpacity: 0.8,
-            onTap: onHeaderTap,
-            child: Row(
-              spacing: 12,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: BuoyGlyph(icon, size: 18, color: accent),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                          color: BuoyTheme.muted,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        spacing: 6,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accent.withValues(alpha: 0.13),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: accent.withValues(alpha: 0.38),
-                              ),
-                            ),
-                            child: Text(
-                              badge,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                                color: accent,
-                              ),
-                            ),
-                          ),
-                          BuoyGlyph(badgeIcon, size: 14, color: accent),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (onHeaderTap != null)
-                  BuoyGlyph(
-                    expanded ? BuoyIcons.chevronDown : BuoyIcons.chevronRight,
-                    size: 18,
-                    color: BuoyTheme.muted,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 11,
-              height: 16 / 11,
-              color: BuoyTheme.muted,
-            ),
-          ),
-          if (expandedChild != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: BuoyTheme.border.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              child: expandedChild,
-            ),
-          ],
-          if (footer != null) ...[const SizedBox(height: 12), footer!],
-        ],
-      ),
-    );
+    ];
   }
 }

@@ -8,6 +8,26 @@ import 'dart:ui' show Color;
 import '../buoy_icon_data.dart';
 
 // ----------------------------------------------------------------------
+// ask-buoy
+// ----------------------------------------------------------------------
+
+/// Brand color for the ask-buoy icon (RN: `ASK_BUOY_ICON_COLOR`).
+const Color kAskBuoyIconColor = Color(0xFF7DD3FC);
+
+const BuoyIconData askBuoyIconData = BuoyIconData(
+  color: kAskBuoyIconColor,
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -10.0, y: -9.5, width: 20.0, height: 15.0, fill: BifPaint.theme, borderRadius: 4.5),
+    BifTriangle(x: -6.5, y: 5.2, size: 5.0, direction: BifDirection.down, fill: BifPaint.theme),
+    BifCircle(cx: -4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 0.0, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
+    BifCircle(cx: 8.2, cy: -9.4, r: 2.8, fill: BifPaint(BifPaintSource.theme, opacity: 0.7)),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // assets
 // ----------------------------------------------------------------------
 
@@ -87,26 +107,6 @@ const BuoyIconData consoleIconData = BuoyIconData(
     BifLine(x1: -5.5, y1: -3.4, x2: -1.8, y2: 0.0, stroke: BifPaint.theme, strokeWidth: 1.7),
     BifLine(x1: -1.8, y1: 0.0, x2: -5.5, y2: 3.4, stroke: BifPaint.theme, strokeWidth: 1.7),
     BifLine(x1: 0.8, y1: 3.6, x2: 5.6, y2: 3.6, stroke: BifPaint.theme, strokeWidth: 1.7, opacity: 0.9),
-  ],
-);
-
-// ----------------------------------------------------------------------
-// copilot
-// ----------------------------------------------------------------------
-
-/// Brand color for the copilot icon (RN: `COPILOT_ICON_COLOR`).
-const Color kCopilotIconColor = Color(0xFF7DD3FC);
-
-const BuoyIconData copilotIconData = BuoyIconData(
-  color: kCopilotIconColor,
-  bgColor: Color(0xFF0A0A0F),
-  elements: <BifElement>[
-    BifRect(x: -10.0, y: -9.5, width: 20.0, height: 15.0, fill: BifPaint.theme, borderRadius: 4.5),
-    BifTriangle(x: -6.5, y: 5.2, size: 5.0, direction: BifDirection.down, fill: BifPaint.theme),
-    BifCircle(cx: -4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
-    BifCircle(cx: 0.0, cy: -2.0, r: 1.5, fill: BifPaint.background),
-    BifCircle(cx: 4.6, cy: -2.0, r: 1.5, fill: BifPaint.background),
-    BifCircle(cx: 8.2, cy: -9.4, r: 2.8, fill: BifPaint(BifPaintSource.theme, opacity: 0.7)),
   ],
 );
 
@@ -1034,6 +1034,19 @@ const BuoyIconData databaseGlyph = BuoyIconData(
 );
 
 // ----------------------------------------------------------------------
+// dock-bottom
+// ----------------------------------------------------------------------
+
+const BuoyIconData dockBottomGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -10.0, y: -10.0, width: 20.0, height: 20.0, border: true, borderWidth: 2.0, borderColor: BifPaint.theme, borderRadius: 3.0),
+    BifRect(x: -9.0, y: 2.0, width: 18.0, height: 7.0, fill: BifPaint.theme),
+  ],
+);
+
+// ----------------------------------------------------------------------
 // download
 // ----------------------------------------------------------------------
 
@@ -1091,6 +1104,25 @@ const BuoyIconData eyeGlyph = BuoyIconData(
     BifLine(x1: -10.0, y1: 0.0, x2: 10.0, y2: 0.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveY: -10.0),
     BifLine(x1: -10.0, y1: 0.0, x2: 10.0, y2: 0.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveY: 10.0),
     BifCircle(cx: 0.0, cy: 0.0, r: 3.0, border: true, borderWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// file-json
+// ----------------------------------------------------------------------
+
+const BuoyIconData fileJsonGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -8.0, y: -10.0, width: 12.0, height: 20.0, border: true, borderWidth: 2.0, borderRadius: 2.0),
+    BifLine(x1: 4.0, y1: -10.0, x2: 8.0, y2: -6.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 8.0, y1: -6.0, x2: 8.0, y2: 10.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 8.0, y1: 10.0, x2: -8.0, y2: 10.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -2.0, y1: -1.0, x2: -4.0, y2: 2.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveX: -1.6),
+    BifLine(x1: -4.0, y1: 2.0, x2: -2.0, y2: 5.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveX: -1.6),
+    BifLine(x1: 2.0, y1: -1.0, x2: 4.0, y2: 2.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveX: 1.6),
+    BifLine(x1: 4.0, y1: 2.0, x2: 2.0, y2: 5.0, stroke: BifPaint.theme, strokeWidth: 2.0, curveX: 1.6),
   ],
 );
 
@@ -1158,6 +1190,22 @@ const BuoyIconData flaskConicalGlyph = BuoyIconData(
     BifLine(x1: 2.0, y1: -2.5, x2: 7.3, y2: 8.5, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: -7.3, y1: 8.5, x2: 7.3, y2: 8.5, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: -5.0, y1: 4.0, x2: 5.0, y2: 4.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// float-window
+// ----------------------------------------------------------------------
+
+const BuoyIconData floatWindowGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifRect(x: -10.0, y: -10.0, width: 16.0, height: 16.0, border: true, borderWidth: 2.0, borderColor: BifPaint.theme, borderRadius: 3.0),
+    BifLine(x1: -5.0, y1: 5.0, x2: -5.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: -5.0, y1: 9.0, x2: 9.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 9.0, y1: 9.0, x2: 9.0, y2: -5.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 5.0, y1: -5.0, x2: 9.0, y2: -5.0, stroke: BifPaint.theme, strokeWidth: 2.0),
   ],
 );
 
@@ -1415,6 +1463,23 @@ const BuoyIconData navigationGlyph = BuoyIconData(
     BifLine(x1: 10.0, y1: -10.0, x2: 1.0, y2: 9.0, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: 1.0, y1: 9.0, x2: -1.0, y2: 1.0, stroke: BifPaint.theme, strokeWidth: 2.0),
     BifLine(x1: -1.0, y1: 1.0, x2: -9.0, y2: -1.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// palette
+// ----------------------------------------------------------------------
+
+const BuoyIconData paletteGlyph = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifArc(cx: 0.0, cy: 0.0, r: 10.0, startAngle: 60.0, endAngle: 380.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifLine(x1: 9.4, y1: 3.4, x2: 4.0, y2: 6.0, stroke: BifPaint.theme, strokeWidth: 2.0),
+    BifCircle(cx: 1.5, cy: -5.5, r: 1.4, fill: BifPaint.theme),
+    BifCircle(cx: 5.5, cy: -1.5, r: 1.4, fill: BifPaint.theme),
+    BifCircle(cx: -3.5, cy: -4.5, r: 1.4, fill: BifPaint.theme),
+    BifCircle(cx: -5.5, cy: 0.5, r: 1.4, fill: BifPaint.theme),
   ],
 );
 
@@ -1690,11 +1755,11 @@ const BuoyIconData zapGlyph = BuoyIconData(
 
 /// Every generated brand icon, keyed by its BIF name.
 const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
+  'ask-buoy': askBuoyIconData,
   'assets': assetsIconData,
   'benchmark': benchmarkIconData,
   'camera': cameraIconData,
   'console': consoleIconData,
-  'copilot': copilotIconData,
   'env': envIconData,
   'events': eventsIconData,
   'highlight': highlightIconData,
@@ -1744,14 +1809,17 @@ const Map<String, BuoyIconData> buoyGlyphsByName = <String, BuoyIconData>{
   'copy': copyGlyph,
   'crop': cropGlyph,
   'database': databaseGlyph,
+  'dock-bottom': dockBottomGlyph,
   'download': downloadGlyph,
   'edit-3': edit3Glyph,
   'eye-off': eyeOffGlyph,
   'eye': eyeGlyph,
+  'file-json': fileJsonGlyph,
   'file-text': fileTextGlyph,
   'film': filmGlyph,
   'filter': filterGlyph,
   'flask-conical': flaskConicalGlyph,
+  'float-window': floatWindowGlyph,
   'gauge': gaugeGlyph,
   'git-branch': gitBranchGlyph,
   'globe': globeGlyph,
@@ -1769,6 +1837,7 @@ const Map<String, BuoyIconData> buoyGlyphsByName = <String, BuoyIconData>{
   'more-vertical': moreVerticalGlyph,
   'music': musicGlyph,
   'navigation': navigationGlyph,
+  'palette': paletteGlyph,
   'pause': pauseGlyph,
   'pin': pinGlyph,
   'play': playGlyph,
