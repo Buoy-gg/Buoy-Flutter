@@ -287,7 +287,7 @@ class _PinnedSection extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       color: MacOSColors.info,
                     ),
                   ),

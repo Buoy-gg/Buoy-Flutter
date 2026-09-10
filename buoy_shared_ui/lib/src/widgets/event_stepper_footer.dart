@@ -93,7 +93,7 @@ class EventStepperFooter extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: night ? NightColor.text : MacOSColors.textPrimary,
-                    fontFamily: 'monospace'),
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
               ),
               if (subtitle != null)
                 Padding(
@@ -104,7 +104,7 @@ class EventStepperFooter extends StatelessWidget {
                           color: night
                               ? NightColor.textSecondary
                               : MacOSColors.textSecondary,
-                          fontFamily: 'monospace')),
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                 ),
             ],
           ),
@@ -142,7 +142,7 @@ class EventStepperFooter extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: color,
-            fontFamily: 'monospace'));
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback));
     final button = Container(
       constraints: const BoxConstraints(minWidth: 100),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

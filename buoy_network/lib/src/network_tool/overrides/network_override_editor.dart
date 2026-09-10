@@ -276,7 +276,7 @@ class _NetworkOverrideEditorState extends State<NetworkOverrideEditor> {
             autocorrect: false,
             style: const TextStyle(
               fontSize: 12,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: MacOSColors.textPrimary,
             ),
             decoration: InputDecoration(
@@ -455,7 +455,7 @@ class _NetworkOverrideEditorState extends State<NetworkOverrideEditor> {
           autocorrect: false,
           style: const TextStyle(
             fontSize: 12,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: MacOSColors.textPrimary,
           ),
           decoration: InputDecoration(

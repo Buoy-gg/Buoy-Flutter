@@ -12,6 +12,7 @@ import '../../tool.dart';
 import '../buoy_theme.dart';
 import '../settings/settings_sheet.dart';
 
+import '../buoy_fonts.dart';
 /// The exact cubic beziers the RN dial ships for its easings
 /// (`dialCSSBeziers.easeOutCubic` / `easeInCubic`) and the press spring
 /// approximation (damping 15 / stiffness 400).
@@ -556,7 +557,7 @@ class _CenterButton extends StatelessWidget {
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 1,
-                              fontFamily: 'monospace',
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                               color: Colors.white,
                               height: 1.2,
                               shadows: [Shadow(color: _teal, blurRadius: 4)],
@@ -627,7 +628,7 @@ class _ToolIconState extends State<_ToolIcon> {
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.3,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     color: BuoyTheme.secondary,
                   ),
                 ),
@@ -698,7 +699,7 @@ class _PaginationBar extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: Colors.white,
                 shadows: [Shadow(color: _teal, blurRadius: 6)],
               ),
@@ -758,7 +759,7 @@ class _PageButtonState extends State<_PageButton> {
         fontSize: 12,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.5,
-        fontFamily: 'monospace',
+        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
         color: accent,
         shadows: enabled
             ? const [Shadow(color: _teal, blurRadius: 4)]

@@ -37,6 +37,17 @@ class Buoy {
   /// Registered in-app tools, in registration order.
   static List<BuoyTool> get tools => List.unmodifiable(_tools);
 
+  /// The parity STAGE: hides the whole Buoy shell — bubble, dial (and its
+  /// backdrop) and every open tool modal — without unmounting the sync client
+  /// or losing which tools are open, so a screenshot never contains chrome.
+  /// The RN twin is `<FloatingDevTools hidden />` (`props.hidden ? null :
+  /// AppOverlay`); the parity sheet's adapter sets it while the CLI drives
+  /// a capture and clears it on `close` / leaving the route.
+  static final ValueNotifier<bool> shellHidden = ValueNotifier<bool>(false);
+
+  /// See [shellHidden].
+  static void setShellHidden(bool hidden) => shellHidden.value = hidden;
+
   /// Notifies when [tools] changes (BuoyDevTools re-renders the dial).
   static VoidCallback addRegistryListener(VoidCallback listener) {
     _registryListeners.add(listener);

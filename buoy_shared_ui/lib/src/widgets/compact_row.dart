@@ -132,7 +132,7 @@ class CompactRow extends StatelessWidget {
                   maxLines: isExpanded ? null : 2,
                   overflow: isExpanded ? null : TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     fontSize: 12,
                     height: 16 / 12,
                     color: NightColor.text,
@@ -278,7 +278,7 @@ class CompactRow extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 9,
                       color: NightColor.textTertiary,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                     child: bottom,
                   )
@@ -290,7 +290,7 @@ class CompactRow extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 9,
                       color: NightColor.textTertiary,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
             ],

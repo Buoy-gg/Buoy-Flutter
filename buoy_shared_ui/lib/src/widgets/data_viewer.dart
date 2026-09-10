@@ -496,7 +496,7 @@ class _TreeRow extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       ),
                     ),
                     if (item.isExpandable || item.childCount > 0)
@@ -506,7 +506,7 @@ class _TreeRow extends StatelessWidget {
                         style: const TextStyle(
                           color: MacOSColors.textSecondary,
                           fontSize: 12,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       )
                     else if (item.valueType == 'object' ||
@@ -516,7 +516,7 @@ class _TreeRow extends StatelessWidget {
                         style: const TextStyle(
                           color: MacOSColors.textSecondary,
                           fontSize: 12,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       )
                     else
@@ -525,7 +525,7 @@ class _TreeRow extends StatelessWidget {
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                   ],

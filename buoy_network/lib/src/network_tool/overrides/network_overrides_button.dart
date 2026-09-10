@@ -71,22 +71,27 @@ class _NetworkOverridesButtonState extends State<NetworkOverridesButton> {
                 // The standard header-action box, with the warning colour
                 // swapped in when armed — the same shape as search/power/clear
                 // because it is the same kind of control.
+                // RN styles this from the NIGHT tokens like every other header
+                // action (NetworkOverrideHeaderButton.tsx): `buttonSurface` on
+                // a `border` hairline, `warningSoft` + `warning77` when armed.
+                // It read the macOS palette, so it sat visibly grey next to its
+                // near-black neighbours.
                 decoration: BoxDecoration(
                   color: active
-                      ? MacOSColors.warningBackground
-                      : MacOSColors.backgroundHover,
+                      ? NightColor.warningSoft
+                      : NightColor.buttonSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: active
-                        ? MacOSColors.warning.hexAlpha(0x77)
-                        : MacOSColors.borderDefault,
+                        ? NightColor.warning.hexAlpha(0x77)
+                        : NightColor.border,
                   ),
                 ),
                 child: BuoyGlyph(
                   BuoyIcons.flaskConical,
                   size: 14,
                   color: active
-                      ? MacOSColors.warning
+                      ? NightColor.warning
                       : MacOSColors.textSecondary,
                 ),
               ),
@@ -100,7 +105,7 @@ class _NetworkOverridesButtonState extends State<NetworkOverridesButton> {
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: MacOSColors.warning,
+                      color: NightColor.warning,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     // The count is already in the button's own label; without

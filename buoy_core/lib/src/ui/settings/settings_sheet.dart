@@ -16,6 +16,7 @@ import '../night/night_primitives.dart';
 import '../night/night_theme.dart';
 import '../touchable_opacity.dart';
 
+import '../buoy_fonts.dart';
 /// The shared background switcher (RN `BackgroundSwitcher`), mounted in the
 /// SETTINGS tab's Background card. Lives in buoy_shared_ui with the presets,
 /// so it reaches this sheet through a seam — `installToolBackground()` sets
@@ -505,7 +506,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                                   style: const TextStyle(
                                     color: NightColor.textSecondary,
                                     fontSize: NightFont.micro,
-                                    fontFamily: 'monospace',
+                                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                   ),
                                 ),
                               ),
@@ -592,7 +593,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         TextSpan(
                           text: status.targetUrl,
                           style: const TextStyle(
-                            fontFamily: 'monospace',
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                             fontSize: NightFont.label,
                             color: NightColor.textSecondary,
                           ),

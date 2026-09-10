@@ -195,7 +195,7 @@ class _ProviderChangeDetailState extends State<ProviderChangeDetail> {
                       style: TextStyle(
                           fontSize: 10,
                           color: MacOSColors.textSecondary,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           letterSpacing: 0.5,
                           fontWeight: FontWeight.w600)),
                 ),
@@ -228,7 +228,7 @@ class _ProviderChangeDetailState extends State<ProviderChangeDetail> {
                           style: const TextStyle(
                               color: MacOSColors.textPrimary,
                               fontSize: 12,
-                              fontFamily: 'monospace')),
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                     ),
             ),
           ],
@@ -245,7 +245,7 @@ class _ProviderChangeDetailState extends State<ProviderChangeDetail> {
             style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 letterSpacing: 0.3,
                 color: color)),
       );
@@ -331,7 +331,7 @@ class _ProviderChangeDetailState extends State<ProviderChangeDetail> {
             style: TextStyle(
                 fontSize: 8,
                 fontWeight: FontWeight.w700,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: color)),
       );
 }
@@ -455,7 +455,7 @@ class _ChangeInfoView extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: BuoyColors.primary,
-                              fontFamily: 'monospace')),
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                     ),
                 ],
               ),
@@ -474,7 +474,7 @@ class _ChangeInfoView extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       letterSpacing: 0.3,
                       color: BuoyColors.primary)),
             ],
@@ -519,7 +519,7 @@ class _ChangeInfoView extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                         color: BuoyColors.primary,
-                        fontFamily: 'monospace')),
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                 if (badge != null) ...[
                   const Spacer(),
                   Container(
@@ -534,7 +534,7 @@ class _ChangeInfoView extends StatelessWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: BuoyColors.primary,
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                   ),
                 ],
               ],
@@ -564,7 +564,7 @@ class _ChangeInfoView extends StatelessWidget {
               style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: valueColor ?? BuoyColors.text)),
         ),
       ],

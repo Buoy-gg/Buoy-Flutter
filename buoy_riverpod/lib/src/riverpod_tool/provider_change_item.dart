@@ -69,7 +69,7 @@ class ProviderChangeItem extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       color: statusColor)),
               const SizedBox(width: 4),
               const Padding(
@@ -88,7 +88,7 @@ class ProviderChangeItem extends StatelessWidget {
       bottomRightText: RelativeTime(
         timestamp: change.timestamp,
         style: const TextStyle(
-            fontSize: 9, color: BuoyColors.textMuted, fontFamily: 'monospace'),
+            fontSize: 9, color: BuoyColors.textMuted, fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
       ),
       customBadge: customBadge,
       badgeText: customBadge != null ? null : badgeText,

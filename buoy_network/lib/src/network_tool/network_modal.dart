@@ -555,15 +555,15 @@ class _NetworkHeaderBadgesState extends State<_NetworkHeaderBadges> {
       onTap: () => widget.onToggleStatus(status),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        // RN `headerChip` / `headerChipActive`: the NIGHT tokens, like every
+        // other control in this header — `buttonSurface` on a `border`
+        // hairline, going ACCENT (not info-cyan) when the filter is on. Only
+        // the status glyph and count keep the semantic palette.
         decoration: BoxDecoration(
-          color: active
-              ? MacOSColors.infoBackground
-              : MacOSColors.backgroundHover,
+          color: active ? NightColor.accentSoft : NightColor.buttonSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: active
-                ? MacOSColors.info.hexAlpha(0x50)
-                : MacOSColors.borderDefault,
+            color: active ? NightColor.accentBorderStrong : NightColor.border,
           ),
         ),
         child: Row(
@@ -576,7 +576,7 @@ class _NetworkHeaderBadgesState extends State<_NetworkHeaderBadges> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: color,
               ),
             ),

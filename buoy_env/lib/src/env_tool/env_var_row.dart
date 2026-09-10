@@ -89,7 +89,7 @@ class EnvVarRow extends StatelessWidget {
           style: const TextStyle(
             fontSize: 11,
             color: BuoyColors.textSecondary,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
       ),
@@ -113,7 +113,7 @@ class EnvVarRow extends StatelessWidget {
           style: const TextStyle(
             fontSize: 11,
             color: BuoyColors.warning,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
       ));
@@ -157,7 +157,7 @@ class EnvVarRow extends StatelessWidget {
               fontSize: 10,
               color: BuoyColors.textMuted,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
           ),
         ),

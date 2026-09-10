@@ -11,6 +11,9 @@ export 'package:buoy_core/buoy_core.dart'
 
 export 'src/network_capture.dart';
 export 'src/network_tool/network_modal.dart';
+// The request row — the parity sheet's `NetworkEventItemCompact` twin renders
+// it standalone (example-flutter/lib/parity/parity_binders.dart).
+export 'src/network_tool/network_event_row.dart';
 export 'src/register.dart';
 
 // Pinned + saved requests — snapshots that outlive Clear, the 500-event cap

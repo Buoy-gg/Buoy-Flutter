@@ -104,7 +104,7 @@ class NetworkEventRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MethodBadge(method: event.method),
+                    MethodBadge(method: event.method, size: BadgeSize.small),
                     _SizeIndicators(
                       requestSize: event.requestSize,
                       responseSize: event.responseSize,
@@ -123,7 +123,7 @@ class NetworkEventRow extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       height: 16 / 12,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       color: MacOSColors.textPrimary,
                     ),
                   ),
@@ -234,7 +234,7 @@ class _SizeIndicators extends StatelessWidget {
           formatBytes(bytes),
           style: const TextStyle(
             fontSize: 8,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: MacOSColors.textSecondary,
           ),
         ),
@@ -263,7 +263,7 @@ class _BottomRightTime extends StatelessWidget {
               : relativeTime,
           style: const TextStyle(
             fontSize: 9,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: MacOSColors.textMuted,
           ),
         );

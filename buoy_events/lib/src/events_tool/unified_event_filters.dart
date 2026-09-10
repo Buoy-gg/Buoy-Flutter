@@ -82,7 +82,7 @@ class UnifiedEventFilters extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11,
                     color: BuoyColors.textMuted,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
               ),
@@ -145,7 +145,7 @@ class UnifiedEventFilters extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: enabled
                       ? BuoyColors.text
                       : BuoyColors.textMuted.hexAlpha(0x70),
@@ -187,7 +187,7 @@ class UnifiedEventFilters extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           fontFeatures: const [FontFeature.tabularFigures()],
           color: fg,
         ),

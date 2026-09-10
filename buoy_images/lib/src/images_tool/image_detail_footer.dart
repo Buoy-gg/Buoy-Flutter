@@ -139,7 +139,7 @@ class _ImageDetailFooterState extends State<ImageDetailFooter> {
       style: TextStyle(
         color: color,
         fontSize: 10,
-        fontFamily: 'monospace',
+        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
       ),
     ),
   );
@@ -190,7 +190,7 @@ class _ImageDetailFooterState extends State<ImageDetailFooter> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: disabled ? MacOSColors.textMuted : MacOSColors.textPrimary,
             ),
           ),
@@ -220,7 +220,7 @@ class _ImageDetailFooterState extends State<ImageDetailFooter> {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           color: disabled
               ? MacOSColors.textMuted
               : accent

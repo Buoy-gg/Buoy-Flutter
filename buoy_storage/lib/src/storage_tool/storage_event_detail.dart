@@ -244,7 +244,7 @@ class _StorageEventDetailState extends State<StorageEventDetail> {
         style: TextStyle(
           fontSize: small ? 8 : 9,
           fontWeight: FontWeight.w700,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           letterSpacing: small ? 0 : 0.3,
           color: color,
         ),
@@ -267,7 +267,7 @@ class _StorageEventDetailState extends State<StorageEventDetail> {
         style: TextStyle(
           fontSize: 8,
           fontWeight: FontWeight.w700,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           color: color,
         ),
       ),
@@ -400,7 +400,7 @@ class _StorageEventDetailState extends State<StorageEventDetail> {
                   style: TextStyle(
                     fontSize: 10,
                     color: MacOSColors.textSecondary,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     letterSpacing: 0.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -422,7 +422,7 @@ class _StorageEventDetailState extends State<StorageEventDetail> {
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
                           color: MacOSColors.textMuted,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                     ),
@@ -576,7 +576,7 @@ class _ActionButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               letterSpacing: 0.5,
               color: fg,
             ),

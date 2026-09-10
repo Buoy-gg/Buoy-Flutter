@@ -620,7 +620,7 @@ class _EventsList extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   letterSpacing: 0.5,
                   color: MacOSColors.textPrimary,
                 ),
@@ -634,7 +634,7 @@ class _EventsList extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 color: MacOSColors.textSecondary,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ],

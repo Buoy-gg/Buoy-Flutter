@@ -84,7 +84,7 @@ class RouteEventDetail extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFFFFFFF),
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -170,7 +170,7 @@ class RouteEventExpandedContent extends StatelessWidget {
             style: const TextStyle(
               fontSize: 10,
               color: BuoyColors.textSecondary,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -182,7 +182,7 @@ class RouteEventExpandedContent extends StatelessWidget {
             style: const TextStyle(
               fontSize: 11,
               color: BuoyColors.text,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
           ),
         ),
@@ -207,7 +207,7 @@ class RouteEventExpandedContent extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11,
                 color: BuoyColors.textSecondary,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 fontWeight: FontWeight.w600,
               ),
             ),

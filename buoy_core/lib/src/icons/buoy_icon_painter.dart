@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
+import 'generated/icon_glow_styles.g.dart';
 import 'buoy_icon_data.dart';
 
 /// Renders a [BuoyIconData] — the Flutter renderer for the Buoy Icon Format.
@@ -18,10 +20,19 @@ import 'buoy_icon_data.dart';
 /// * **Smootharcs** — a 90-degree quadrant, not a half circle.
 ///
 /// Where Flutter has a better primitive than the React Native original (real
-/// arcs instead of line-segment approximations, a real blur instead of stacked
-/// shadows, one `cubicTo` instead of hundreds of dots) it uses it. Per the
-/// spec's fidelity policy that is intended: position, size, angle, order,
-/// color and opacity must match exactly; smoothness may exceed the original.
+/// arcs instead of line-segment approximations, one `cubicTo` instead of
+/// hundreds of dots) it uses it. Per the spec's fidelity policy that is
+/// intended: position, size, angle, order, color and opacity must match
+/// exactly; smoothness may exceed the original.
+///
+/// GLOW is not in that category. RN renders a glow as a CALayer shadow with a
+/// specific opacity and radius per element kind, and those numbers live in ONE
+/// table (`packages/floating-tools-core/src/icons/iconGlow.ts` → the generated
+/// [IconGlowStyles]) so no port re-types them. A filled element casts one
+/// shadow of its own silhouette; a border-only ring, a line and a border-only
+/// rect get a separate twin drawn UNDERNEATH with a FIXED shadow radius. A
+/// "looks better" blur is a parity bug — the iOS port had exactly that one,
+/// and the network icon's halo came out several points too wide.
 ///
 /// Uses no packages — `dart:ui` only. Adding `flutter_svg` here would defeat
 /// the point of the format.
@@ -86,7 +97,8 @@ class BuoyIconPainter extends CustomPainter {
   double _px(double unit, double scale, double center) => center + unit * scale;
 
   /// An authored stroke width in icon units -> pixels, honoring the override.
-  double _stroke(double authored, double scale) => (strokeWidthOverride ?? authored) * scale;
+  double _stroke(double authored, double scale) =>
+      (strokeWidthOverride ?? authored) * scale;
 
   Paint _paint({
     required Color color,
@@ -94,11 +106,11 @@ class BuoyIconPainter extends CustomPainter {
     required bool stroke,
     double strokeWidth = 0,
     StrokeCap cap = StrokeCap.butt,
-    bool glow = false,
-    double glowSigma = 0,
   }) {
     final Paint paint = Paint()
-      ..color = opacity == 1.0 ? color : color.withValues(alpha: color.a * opacity)
+      ..color = opacity == 1.0
+          ? color
+          : color.withValues(alpha: color.a * opacity)
       ..isAntiAlias = true;
 
     if (stroke) {
@@ -110,23 +122,111 @@ class BuoyIconPainter extends CustomPainter {
       paint.style = PaintingStyle.fill;
     }
 
-    if (glow && glowSigma > 0) {
-      paint.maskFilter = MaskFilter.blur(BlurStyle.normal, glowSigma);
-    }
     return paint;
   }
 
-  /// A blur radius in icon units -> a Gaussian sigma in pixels.
+  /// A shadow RADIUS (the number RN puts in `shadowRadius`) -> the Gaussian
+  /// sigma `ImageFilter.blur` wants.
   ///
-  /// The RN original fakes glow with a shadow whose radius is a hard cutoff,
-  /// while a Gaussian's visible extent is roughly 3 sigma. Dividing by 3 keeps
-  /// the bloom the same visual size instead of three times too wide.
-  double _glowSigma(double radiusUnits, double scale) => math.max(0.0, radiusUnits * scale / 3.0);
+  /// Both sides are Gaussians, so this is the ONE calibration constant in the
+  /// renderer. Quartz's shadow blur is ~2 sigma wide, which is where 0.5 comes
+  /// from; change it ONLY from a parity-sheet measurement — `pnpm parity boxes
+  /// icons/network-32` prints the halo spread and edge softness on both sides.
+  static const double sigmaPerShadowRadius = 1.0;
+
+  double _sigma(double shadowRadiusPx) =>
+      math.max(0.0, shadowRadiusPx * sigmaPerShadowRadius);
+
+  /// The layer a glow is composited into. The blur bleeds well past the icon
+  /// box, so the layer is the icon square grown by half its size on every side
+  /// (the same bleed the iOS renderer uses); the LAYOUT box is untouched.
+  Rect _glowBounds(double center) =>
+      Rect.fromLTRB(-center, -center, center * 3, center * 3);
+
+  /// RN's filled glow: ONE shadow of the element's whole silhouette, in the
+  /// ICON colour. `draw` runs twice — once into the blurred, recoloured layer
+  /// and once crisp on top — so a fill and its border cast a single shadow
+  /// rather than two that stack ~1.35x brighter at the edge.
+  void _filledGlow(
+    Canvas canvas,
+    double center,
+    Color color,
+    double glowRadiusPx,
+    VoidCallback draw,
+  ) {
+    final double sigma = _sigma(
+      glowRadiusPx * IconGlowStyles.ICON_GLOW_filledRadiusScale,
+    );
+    if (sigma <= 0) {
+      draw();
+      return;
+    }
+    canvas.saveLayer(
+      _glowBounds(center),
+      Paint()
+        ..imageFilter = ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma)
+        ..colorFilter = ColorFilter.mode(
+          color.withValues(alpha: IconGlowStyles.ICON_GLOW_filledShadowOpacity),
+          BlendMode.srcIn,
+        ),
+    );
+    draw();
+    canvas.restore();
+    draw();
+  }
+
+  /// RN's separate glow LAYER: a twin View drawn under the element at
+  /// `layerOpacity`, casting a shadow of `shadowOpacity` at a FIXED radius in
+  /// points (unscaled, exactly like RN). `drawTwin` paints the twin's body.
+  void _twinGlow(
+    Canvas canvas,
+    double center,
+    Color color, {
+    required double layerOpacity,
+    required double shadowRadius,
+    required double shadowOpacity,
+    required VoidCallback drawTwin,
+  }) {
+    final double sigma = _sigma(shadowRadius);
+    canvas.saveLayer(
+      _glowBounds(center),
+      Paint()..color = Color.fromRGBO(0, 0, 0, layerOpacity),
+    );
+    if (sigma > 0) {
+      canvas.saveLayer(
+        _glowBounds(center),
+        Paint()
+          ..imageFilter = ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma)
+          ..colorFilter = ColorFilter.mode(
+            color.withValues(alpha: shadowOpacity),
+            BlendMode.srcIn,
+          ),
+      );
+      drawTwin();
+      canvas.restore();
+    }
+    drawTwin();
+    canvas.restore();
+  }
+
+  /// Moves `p` towards `q` by `d` pixels, never past the midpoint.
+  static Offset _moved(Offset p, Offset q, double d) {
+    final double dx = q.dx - p.dx;
+    final double dy = q.dy - p.dy;
+    final double len = math.max(0.0001, math.sqrt(dx * dx + dy * dy));
+    final double k = math.min(d, len / 2) / len;
+    return Offset(p.dx + dx * k, p.dy + dy * k);
+  }
 
   double _rad(double degrees) => degrees * math.pi / 180.0;
 
   /// Runs [draw] with the canvas rotated [degrees] about [pivot].
-  void _rotated(Canvas canvas, double? degrees, Offset pivot, VoidCallback draw) {
+  void _rotated(
+    Canvas canvas,
+    double? degrees,
+    Offset pivot,
+    VoidCallback draw,
+  ) {
     if (degrees == null || degrees == 0) {
       draw();
       return;
@@ -142,12 +242,33 @@ class BuoyIconPainter extends CustomPainter {
 
   // ---------------------------------------------------------------- circle
 
-  void _circle(Canvas canvas, BifCircle e, double scale, double center, Color theme, Color bg) {
-    final Offset origin = Offset(_px(e.cx, scale, center), _px(e.cy, scale, center));
+  void _circle(
+    Canvas canvas,
+    BifCircle e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
+    final Offset origin = Offset(
+      _px(e.cx, scale, center),
+      _px(e.cy, scale, center),
+    );
     final double r = e.r * scale;
+    final double strokeWidth = _stroke(e.borderWidth, scale);
+    // `r` is the OUTER radius but Canvas centres strokes on the path.
+    final double innerR = r - strokeWidth / 2;
+    final Color? fill = e.fill?.resolve(theme, bg);
+    final Color borderColor = e.borderColor?.resolve(theme, bg) ?? theme;
+    // RN: the glow colour is the ICON colour, never the fill.
+    final Color glowColor = theme;
+    final double glowRadius = e.glowRadius * scale;
 
-    // scaleX/scaleY scale about the element's own center, turning it into an
-    // ellipse. Note `rotation` is intentionally unsupported here (see SPEC.md).
+    // RN draws the UNSCALED circle (border `borderWidth` all round) and then
+    // applies `transform: [{scaleX}, {scaleY}]` to the whole View — so a
+    // squashed ring's border is thin on the squashed sides. `canvas.scale`
+    // about the element's own centre reproduces that; stroking a pre-squashed
+    // ellipse with a uniform width does not.
     final bool scaled = e.scaleX != 1.0 || e.scaleY != 1.0;
     if (scaled) {
       canvas
@@ -157,50 +278,63 @@ class BuoyIconPainter extends CustomPainter {
         ..translate(-origin.dx, -origin.dy);
     }
 
-    final double glowSigma = _glowSigma(e.glowRadius, scale);
-
-    // Glow first so it sits behind the shape, matching the RN layer order.
-    if (e.glow && glowSigma > 0) {
-      final Color glowColor = theme;
-      if (e.border) {
-        canvas.drawCircle(
-          origin,
-          r - _stroke(e.borderWidth, scale) / 2,
-          _paint(
-            color: glowColor,
-            opacity: e.opacity * 0.5,
-            stroke: true,
-            strokeWidth: _stroke(e.borderWidth, scale),
-            glow: true,
-            glowSigma: glowSigma,
-          ),
-        );
-      } else {
+    void body() {
+      if (fill != null) {
         canvas.drawCircle(
           origin,
           r,
-          _paint(color: glowColor, opacity: e.opacity * 0.9, stroke: false, glow: true, glowSigma: glowSigma),
+          _paint(color: fill, opacity: e.opacity, stroke: false),
+        );
+      }
+      if (e.border && innerR > 0) {
+        canvas.drawCircle(
+          origin,
+          innerR,
+          _paint(
+            color: borderColor,
+            opacity: e.opacity,
+            stroke: true,
+            strokeWidth: strokeWidth,
+          ),
         );
       }
     }
 
-    if (e.fill != null) {
-      canvas.drawCircle(origin, r, _paint(color: e.fill!.resolve(theme, bg), opacity: e.opacity, stroke: false));
-    }
-
-    if (e.border) {
-      final double strokeWidth = _stroke(e.borderWidth, scale);
-      // Inset: `r` is the OUTER radius but Canvas centers strokes on the path.
-      canvas.drawCircle(
-        origin,
-        r - strokeWidth / 2,
-        _paint(
-          color: e.borderColor?.resolve(theme, bg) ?? theme,
-          opacity: e.opacity,
-          stroke: true,
-          strokeWidth: strokeWidth,
-        ),
+    if (e.glow && glowRadius > 0 && fill != null) {
+      _filledGlow(canvas, center, glowColor, glowRadius, body);
+    } else if (e.glow && glowRadius > 0) {
+      // RN ring glow: a same-size ring with a BLACK fill and a glow-colour
+      // border, at 0.5 opacity with a fixed 8 pt shadow, under the real ring.
+      _twinGlow(
+        canvas,
+        center,
+        glowColor,
+        layerOpacity: IconGlowStyles.ICON_GLOW_ringLayerOpacity,
+        shadowRadius: IconGlowStyles.ICON_GLOW_ringShadowRadius,
+        shadowOpacity: IconGlowStyles.ICON_GLOW_ringShadowOpacity,
+        drawTwin: () {
+          canvas.drawCircle(
+            origin,
+            r,
+            _paint(color: const Color(0xFF000000), opacity: 1, stroke: false),
+          );
+          if (innerR > 0) {
+            canvas.drawCircle(
+              origin,
+              innerR,
+              _paint(
+                color: glowColor,
+                opacity: 1,
+                stroke: true,
+                strokeWidth: math.max(strokeWidth, scale),
+              ),
+            );
+          }
+        },
       );
+      body();
+    } else {
+      body();
     }
 
     if (scaled) canvas.restore();
@@ -208,7 +342,14 @@ class BuoyIconPainter extends CustomPainter {
 
   // ------------------------------------------------------------------ rect
 
-  void _rect(Canvas canvas, BifRect e, double scale, double center, Color theme, Color bg) {
+  void _rect(
+    Canvas canvas,
+    BifRect e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
     final Rect rect = Rect.fromLTWH(
       _px(e.x, scale, center),
       _px(e.y, scale, center),
@@ -216,53 +357,81 @@ class BuoyIconPainter extends CustomPainter {
       e.height * scale,
     );
     final double radius = e.borderRadius * scale;
+    final double strokeWidth = _stroke(e.borderWidth, scale);
+    final Rect inner = rect.deflate(strokeWidth / 2);
+    final Color? fill = e.fill?.resolve(theme, bg);
+    final Color borderColor = e.borderColor?.resolve(theme, bg) ?? theme;
+    final double glowRadius = e.glowRadius * scale;
 
     // Rotation origin: left-edge midpoint by default, center when asked.
-    final Offset pivot = e.rotateFromCenter ? rect.center : Offset(rect.left, rect.center.dy);
+    final Offset pivot = e.rotateFromCenter
+        ? rect.center
+        : Offset(rect.left, rect.center.dy);
 
     _rotated(canvas, e.rotation, pivot, () {
-      final double glowSigma = _glowSigma(e.glowRadius, scale);
-
-      if (e.glow && glowSigma > 0) {
-        _drawRect(
-          canvas,
-          rect,
-          radius,
-          _paint(color: theme, opacity: e.opacity * 0.6, stroke: false, glow: true, glowSigma: glowSigma),
-        );
+      void body() {
+        if (fill != null) {
+          _drawRect(
+            canvas,
+            rect,
+            radius,
+            _paint(color: fill, opacity: e.opacity, stroke: false),
+          );
+        }
+        if (e.border && inner.width > 0 && inner.height > 0) {
+          // The inner edge keeps the same visual corner: shrink the radius with it.
+          _drawRect(
+            canvas,
+            inner,
+            math.max(0.0, radius - strokeWidth / 2),
+            _paint(
+              color: borderColor,
+              opacity: e.opacity,
+              stroke: true,
+              strokeWidth: strokeWidth,
+            ),
+          );
+        }
       }
 
-      if (e.fill != null) {
-        _drawRect(
+      if (e.glow && glowRadius > 0 && fill != null) {
+        _filledGlow(canvas, center, theme, glowRadius, body);
+      } else if (e.glow && glowRadius > 0) {
+        // RN rect glow: the rect expanded by the stroke width, bordered at
+        // 2x the stroke, 0.4 opacity, shadow radius 4x the stroke at 0.8.
+        final double sw = math.max(strokeWidth, scale);
+        _twinGlow(
           canvas,
-          rect,
-          radius,
-          _paint(color: e.fill!.resolve(theme, bg), opacity: e.opacity, stroke: false),
-        );
-      }
-
-      if (e.border) {
-        final double strokeWidth = _stroke(e.borderWidth, scale);
-        // Inset for the same reason as circles: the box is the OUTER bound.
-        final Rect inner = rect.deflate(strokeWidth / 2);
-        _drawRect(
-          canvas,
-          inner,
-          math.max(0.0, radius - strokeWidth / 2),
-          _paint(
-            color: e.borderColor?.resolve(theme, bg) ?? theme,
-            opacity: e.opacity,
-            stroke: true,
-            strokeWidth: strokeWidth,
+          center,
+          theme,
+          layerOpacity: IconGlowStyles.ICON_GLOW_rectLayerOpacity,
+          shadowRadius: sw * IconGlowStyles.ICON_GLOW_rectShadowRadiusScale,
+          shadowOpacity: IconGlowStyles.ICON_GLOW_rectShadowOpacity,
+          drawTwin: () => _drawRect(
+            canvas,
+            rect,
+            math.max(0.0, radius),
+            _paint(
+              color: theme,
+              opacity: 1,
+              stroke: true,
+              strokeWidth: sw * IconGlowStyles.ICON_GLOW_rectBorderScale,
+            ),
           ),
         );
+        body();
+      } else {
+        body();
       }
     });
   }
 
   void _drawRect(Canvas canvas, Rect rect, double radius, Paint paint) {
     if (radius > 0) {
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)), paint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(radius)),
+        paint,
+      );
     } else {
       canvas.drawRect(rect, paint);
     }
@@ -270,55 +439,127 @@ class BuoyIconPainter extends CustomPainter {
 
   // ------------------------------------------------------------------ line
 
-  void _line(Canvas canvas, BifLine e, double scale, double center, Color theme, Color bg) {
-    final Offset p1 = Offset(_px(e.x1, scale, center), _px(e.y1, scale, center));
-    final Offset p2 = Offset(_px(e.x2, scale, center), _px(e.y2, scale, center));
+  void _line(
+    Canvas canvas,
+    BifLine e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
     final double strokeWidth = _stroke(e.strokeWidth, scale);
     final Color color = e.stroke.resolve(theme, bg);
-    final double glowSigma = _glowSigma(e.glowRadius, scale);
+    final double glowRadius = e.glowRadius * scale;
+    final Path path = _linePath(e, scale, center, inset: strokeWidth / 2);
 
-    // Round caps: the RN original is a View with borderRadius = strokeWidth / 2.
-    Paint linePaint({required double opacity, bool glow = false}) => _paint(
-          color: glow ? theme : color,
-          opacity: opacity,
-          stroke: true,
-          strokeWidth: strokeWidth,
-          cap: StrokeCap.round,
-          glow: glow,
-          glowSigma: glowSigma,
-        );
+    Paint linePaint() => _paint(
+      color: color,
+      opacity: e.opacity,
+      stroke: true,
+      strokeWidth: strokeWidth,
+      cap: StrokeCap.round,
+    );
+
+    if (e.glow && glowRadius > 0) {
+      // RN line glow: the SAME line in the glow colour at 0.5 opacity with a
+      // fixed 8 pt shadow, drawn under the crisp one.
+      _twinGlow(
+        canvas,
+        center,
+        color,
+        layerOpacity: IconGlowStyles.ICON_GLOW_lineLayerOpacity,
+        shadowRadius: IconGlowStyles.ICON_GLOW_lineShadowRadius,
+        shadowOpacity: IconGlowStyles.ICON_GLOW_lineShadowOpacity,
+        drawTwin: () => canvas.drawPath(
+          path,
+          _paint(
+            color: color,
+            opacity: 1,
+            stroke: true,
+            strokeWidth: strokeWidth,
+            cap: StrokeCap.round,
+          ),
+        ),
+      );
+    }
+    canvas.drawPath(path, linePaint());
+  }
+
+  /// The line's path, with both ends pulled in by [inset].
+  ///
+  /// An RN line is a capsule exactly `length` long — its round ends sit INSIDE
+  /// the length — while a stroked path with round caps sticks out by half the
+  /// stroke at each end. Pulling both endpoints in by half the stroke makes the
+  /// extents equal (the fix for the bolder routes S, the wider wifi arcs and
+  /// the blobs at the highlighter's joins on iOS).
+  Path _linePath(BifLine e, double scale, double center, {double inset = 0}) {
+    Offset start = Offset(_px(e.x1, scale, center), _px(e.y1, scale, center));
+    Offset end = Offset(_px(e.x2, scale, center), _px(e.y2, scale, center));
+    final Offset mid = Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+    final Path path = Path();
 
     if (e.isCurved) {
       // Control points are offsets from the segment MIDPOINT, not the start.
       // Flutter draws one true Bezier where RN stamps hundreds of dots.
-      final Offset mid = Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2);
-      final Offset c1 = mid + Offset((e.curveX ?? 0) * scale, (e.curveY ?? 0) * scale);
-      final Offset c2 = mid + Offset((e.curve2X ?? 0) * scale, (e.curve2Y ?? 0) * scale);
-
-      final Path path = Path()..moveTo(p1.dx, p1.dy);
+      final Offset c1 =
+          mid + Offset((e.curveX ?? 0) * scale, (e.curveY ?? 0) * scale);
+      final Offset c2 =
+          mid + Offset((e.curve2X ?? 0) * scale, (e.curve2Y ?? 0) * scale);
+      final bool has1 = (e.curveX ?? 0) != 0 || (e.curveY ?? 0) != 0;
+      if (inset > 0) {
+        // Trim along the end tangents (towards the first / last control point).
+        final Offset cs = has1 ? c1 : c2;
+        final Offset ce = e.isCubic ? c2 : cs;
+        start = _moved(start, cs, inset);
+        end = _moved(end, ce, inset);
+      }
+      path.moveTo(start.dx, start.dy);
       if (e.isCubic) {
-        path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p2.dx, p2.dy);
+        path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, end.dx, end.dy);
       } else {
         final Offset c = e.usesFirstControlForQuadratic ? c1 : c2;
-        path.quadraticBezierTo(c.dx, c.dy, p2.dx, p2.dy);
+        path.quadraticBezierTo(c.dx, c.dy, end.dx, end.dy);
       }
-
-      if (e.glow && glowSigma > 0) canvas.drawPath(path, linePaint(opacity: e.opacity * 0.5, glow: true));
-      canvas.drawPath(path, linePaint(opacity: e.opacity));
-      return;
+      return path;
     }
 
     // Straight: `rotation` adds to the segment's own angle, about its midpoint.
-    final Offset mid = Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2);
-    _rotated(canvas, e.rotation, mid, () {
-      if (e.glow && glowSigma > 0) canvas.drawLine(p1, p2, linePaint(opacity: e.opacity * 0.5, glow: true));
-      canvas.drawLine(p1, p2, linePaint(opacity: e.opacity));
-    });
+    if (e.rotation != null && e.rotation != 0) {
+      final double a = _rad(e.rotation!);
+      Offset spin(Offset p) {
+        final double dx = p.dx - mid.dx;
+        final double dy = p.dy - mid.dy;
+        return Offset(
+          mid.dx + dx * math.cos(a) - dy * math.sin(a),
+          mid.dy + dx * math.sin(a) + dy * math.cos(a),
+        );
+      }
+
+      start = spin(start);
+      end = spin(end);
+    }
+    if (inset > 0) {
+      final Offset s0 = start;
+      final Offset e0 = end;
+      start = _moved(s0, e0, inset);
+      end = _moved(e0, s0, inset);
+    }
+    path
+      ..moveTo(start.dx, start.dy)
+      ..lineTo(end.dx, end.dy);
+    return path;
   }
 
   // -------------------------------------------------------------- triangle
 
-  void _triangle(Canvas canvas, BifTriangle e, double scale, double center, Color theme, Color bg) {
+  void _triangle(
+    Canvas canvas,
+    BifTriangle e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
     final double x = _px(e.x, scale, center);
     final double y = _px(e.y, scale, center);
     final double size = e.size * scale;
@@ -326,10 +567,26 @@ class BuoyIconPainter extends CustomPainter {
 
     // (x, y) is the midpoint of the BASE; the apex is `size` away in `direction`.
     final (Offset apex, Offset baseA, Offset baseB) = switch (e.direction) {
-      BifDirection.down => (Offset(x, y + size), Offset(x - half, y), Offset(x + half, y)),
-      BifDirection.up => (Offset(x, y - size), Offset(x - half, y), Offset(x + half, y)),
-      BifDirection.right => (Offset(x + size, y), Offset(x, y - half), Offset(x, y + half)),
-      BifDirection.left => (Offset(x - size, y), Offset(x, y - half), Offset(x, y + half)),
+      BifDirection.down => (
+        Offset(x, y + size),
+        Offset(x - half, y),
+        Offset(x + half, y),
+      ),
+      BifDirection.up => (
+        Offset(x, y - size),
+        Offset(x - half, y),
+        Offset(x + half, y),
+      ),
+      BifDirection.right => (
+        Offset(x + size, y),
+        Offset(x, y - half),
+        Offset(x, y + half),
+      ),
+      BifDirection.left => (
+        Offset(x - size, y),
+        Offset(x, y - half),
+        Offset(x, y + half),
+      ),
     };
 
     final Path path = Path()
@@ -340,22 +597,46 @@ class BuoyIconPainter extends CustomPainter {
 
     final Offset pivot = path.getBounds().center;
     _rotated(canvas, e.rotation, pivot, () {
-      canvas.drawPath(path, _paint(color: e.fill.resolve(theme, bg), opacity: e.opacity, stroke: false));
+      canvas.drawPath(
+        path,
+        _paint(
+          color: e.fill.resolve(theme, bg),
+          opacity: e.opacity,
+          stroke: false,
+        ),
+      );
     });
   }
 
   // ------------------------------------------------------------------- arc
 
-  void _arc(Canvas canvas, BifArc e, double scale, double center, Color theme, Color bg) {
+  void _arc(
+    Canvas canvas,
+    BifArc e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
     final double strokeWidth = _stroke(e.strokeWidth, scale);
+    // Inset: `r` is the OUTER radius.
+    final double r = e.r * scale - strokeWidth / 2;
+    // Round caps stick out by half a stroke ALONG THE ARC, so the angular
+    // equivalent of the line inset is `sw / 2r` radians at each end — the same
+    // capsule rule as [_linePath].
+    final double capRad = strokeWidth / 2 / math.max(r, 0.001);
+    final double from = _rad(e.startAngle) + capRad;
+    final double to = _rad(e.endAngle) - capRad;
     // A true arc — the `segments` hint in the format is for renderers that have
     // to approximate. Flutter ignores it, per the spec's fidelity policy.
-    _strokeArc(
-      canvas,
-      Offset(_px(e.cx, scale, center), _px(e.cy, scale, center)),
-      e.r * scale,
-      _rad(e.startAngle),
-      _rad(e.endAngle - e.startAngle),
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(_px(e.cx, scale, center), _px(e.cy, scale, center)),
+        radius: r,
+      ),
+      from,
+      math.max(0.0, to - from),
+      false,
       _paint(
         color: e.stroke.resolve(theme, bg),
         opacity: e.opacity,
@@ -363,14 +644,23 @@ class BuoyIconPainter extends CustomPainter {
         strokeWidth: strokeWidth,
         cap: StrokeCap.round,
       ),
-      strokeWidth,
     );
   }
 
   // ------------------------------------------------------------ semicircle
 
-  void _semicircle(Canvas canvas, BifSemicircle e, double scale, double center, Color theme, Color bg) {
-    final Offset origin = Offset(_px(e.cx, scale, center), _px(e.cy, scale, center));
+  void _semicircle(
+    Canvas canvas,
+    BifSemicircle e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
+    final Offset origin = Offset(
+      _px(e.cx, scale, center),
+      _px(e.cy, scale, center),
+    );
     final double r = e.r * scale;
 
     // Half a disc, cut through the center. 0 deg = right, sweeping clockwise.
@@ -381,47 +671,53 @@ class BuoyIconPainter extends CustomPainter {
       BifHalf.right => 270.0,
     };
 
-    final double glowSigma = _glowSigma(e.glowRadius, scale);
-    if (e.glow && glowSigma > 0) {
-      canvas.drawArc(
-        Rect.fromCircle(center: origin, radius: r),
-        _rad(startDeg),
-        math.pi,
-        true,
-        _paint(color: theme, opacity: e.opacity * 0.6, stroke: false, glow: true, glowSigma: glowSigma),
-      );
+    final Color? fill = e.fill?.resolve(theme, bg);
+    final double strokeWidth = _stroke(e.borderWidth, scale);
+    final double glowRadius = e.glowRadius * scale;
+
+    void body() {
+      if (fill != null) {
+        canvas.drawArc(
+          Rect.fromCircle(center: origin, radius: r),
+          _rad(startDeg),
+          math.pi,
+          true,
+          _paint(color: fill, opacity: e.opacity, stroke: false),
+        );
+      }
+      if (e.border) {
+        canvas.drawArc(
+          Rect.fromCircle(center: origin, radius: r - strokeWidth / 2),
+          _rad(startDeg),
+          math.pi,
+          true,
+          _paint(
+            color: e.borderColor?.resolve(theme, bg) ?? theme,
+            opacity: e.opacity,
+            stroke: true,
+            strokeWidth: strokeWidth,
+          ),
+        );
+      }
     }
 
-    if (e.fill != null) {
-      canvas.drawArc(
-        Rect.fromCircle(center: origin, radius: r),
-        _rad(startDeg),
-        math.pi,
-        true,
-        _paint(color: e.fill!.resolve(theme, bg), opacity: e.opacity, stroke: false),
-      );
-    }
-
-    if (e.border) {
-      final double strokeWidth = _stroke(e.borderWidth, scale);
-      canvas.drawArc(
-        Rect.fromCircle(center: origin, radius: r - strokeWidth / 2),
-        _rad(startDeg),
-        math.pi,
-        true,
-        _paint(
-          color: e.borderColor?.resolve(theme, bg) ?? theme,
-          opacity: e.opacity,
-          stroke: true,
-          strokeWidth: strokeWidth,
-        ),
-      );
+    if (e.glow && glowRadius > 0 && fill != null) {
+      _filledGlow(canvas, center, theme, glowRadius, body);
+    } else {
+      body();
     }
   }
 
   // ------------------------------------------------------------ smooth arc
 
-  void _smoothArc(Canvas canvas, BifSmoothArc e, double scale, double center, Color theme, Color bg) {
+  void _smoothArc(
+    Canvas canvas,
+    BifSmoothArc e,
+    double scale,
+    double center,
+    Color theme,
+    Color bg,
+  ) {
     final double strokeWidth = _stroke(e.strokeWidth, scale);
 
     // A QUADRANT, not a half: the RN original colors one border of a rounded
@@ -450,7 +746,10 @@ class BuoyIconPainter extends CustomPainter {
   }
 
   /// Strokes an arc whose [outerRadius] is the OUTER bound, insetting so the
-  /// stroke lands inside it exactly like an RN border does.
+  /// stroke lands inside it exactly like an RN border does. Used by
+  /// `smoothArc`, whose ends are cut SQUARE by the quadrant boundary (RN draws
+  /// it as a circle View with only some borders coloured) — butt caps, exact
+  /// angles, no cap inset.
   void _strokeArc(
     Canvas canvas,
     Offset origin,
@@ -520,7 +819,14 @@ class BuoyIcon extends StatelessWidget {
     // the glyph to fill it. Center loosens the incoming constraints and the
     // SizedBox then pins the paint area to exactly `size` — the same shape
     // Material's own [Icon] uses, and why Material glyphs never inflated here.
-    return Center(
+    // `Align` with both factors 1 — NOT `Center`: Center expands to its
+    // constraints, so an icon dropped into a loose parent (a row, the parity
+    // sheet's hug box) measured the whole available width instead of `size`.
+    // The factors keep the loosening this needs (see the note above) while the
+    // box still shrink-wraps to `size`.
+    return Align(
+      widthFactor: 1,
+      heightFactor: 1,
       child: SizedBox.square(
         dimension: size,
         child: RepaintBoundary(

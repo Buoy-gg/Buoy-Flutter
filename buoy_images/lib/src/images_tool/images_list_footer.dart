@@ -147,7 +147,7 @@ class _ImagesListFooterState extends State<ImagesListFooter> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: accent ? MacOSColors.warning : MacOSColors.textSecondary,
             ),
           ),
@@ -196,7 +196,7 @@ class _ImagesListFooterState extends State<ImagesListFooter> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: active ? MacOSColors.info : MacOSColors.textSecondary,
             ),
           ),

@@ -70,7 +70,7 @@ class DiffModeTabs extends StatelessWidget {
         tab.label,
         style: TextStyle(
           fontSize: 11,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
           color: isDisabled

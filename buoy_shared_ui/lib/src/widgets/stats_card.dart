@@ -110,10 +110,12 @@ class StatsCardItem extends StatelessWidget {
                   const SizedBox(width: 4),
                 ],
                 Flexible(
+                  // RN's `statLabel` has no `numberOfLines`, so a long label
+                  // WRAPS and the tile grows — ellipsizing it here made the
+                  // grid 13 pt shorter than its RN twin ("REQUESTS" fits on
+                  // two lines there, "REQUE…" on one here).
                   child: Text(
                     label.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: labelSize,
                       fontWeight: FontWeight.w500,
@@ -139,16 +141,33 @@ class StatsCardItem extends StatelessWidget {
   }
 }
 
-/// StatsCard.Grid — a wrapping, evenly-spaced row of tiles.
+/// StatsCard.Grid — one row of evenly-sized tiles, 12 pt apart.
+///
+/// RN's `grid` is `flexDirection: row, flexWrap: wrap, gap: 12` over items that
+/// are `flex: 1, minWidth: 70`, so the tiles SHARE the row (four of them fit a
+/// 370 pt stage: 4x70 + 3x12 = 316) and only wrap once the minimum no longer
+/// fits. A Flutter `Wrap` cannot flex its children, so it sized each tile to
+/// its own text and stacked them — the parity sheet measured the grid 206 pt
+/// taller than its RN twin. `Expanded` is the flex:1 the layout is actually
+/// built on; the deviation is that a very long row squashes instead of
+/// wrapping. `columns` is a no-op in RN too (all three presets are
+/// `justify-content: space-between`), so it is not a parameter here.
 class StatsCardGrid extends StatelessWidget {
   const StatsCardGrid({super.key, required this.children});
   final List<Widget> children;
   @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: children,
-      );
+  Widget build(BuildContext context) => IntrinsicHeight(
+    // RN's row is `align-items: stretch`, so every tile is as tall as the
+    // tallest. A Flutter Row cannot stretch into an unbounded height without
+    // being told what that height is — IntrinsicHeight measures it first.
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 12,
+      children: <Widget>[
+        for (final Widget child in children) Expanded(child: child),
+      ],
+    ),
+  );
 }
 
 /// StatsCard.Row — a space-between label/value row.

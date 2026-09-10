@@ -21,12 +21,14 @@ class MacOSColors {
   /// Input field borders (RN `macOSColors.border.input`) — a step lighter than
   /// [borderDefault] so a field reads as editable next to a plain divider.
   static const borderInput = Color(0xFF3D3D42);
+  static const borderHover = Color(0xFF4D4D4F);
 
   // Text
   static const textPrimary = Color(0xFFF5F5F7);
   static const textSecondary = Color(0xFFA1A1A6);
   static const textMuted = Color(0xFF8E8E93);
   static const textDisabled = Color(0xFF9E9EA0);
+  static const textIcon = Color(0xFF6D6D6F);
 
   // Semantic
   static const success = Color(0xFF34C759);

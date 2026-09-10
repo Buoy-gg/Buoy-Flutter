@@ -293,7 +293,7 @@ class _RoutesModalState extends State<RoutesModal> {
                           color: BuoyColors.text,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -308,7 +308,7 @@ class _RoutesModalState extends State<RoutesModal> {
                         style: const TextStyle(
                           color: BuoyColors.textSecondary,
                           fontSize: 14,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                     ],

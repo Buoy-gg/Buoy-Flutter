@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:buoy_core/buoy_core.dart';
-import '../macos_colors.dart';
 
 /// Port of shared-ui's ModalHeader (container + Navigation/Content/Actions).
 /// Rendered inside JsModal's headerContent slot, below the drag indicator.
@@ -114,19 +113,30 @@ class ModalHeaderActions extends StatelessWidget {
 }
 
 /// The network header's 32×32 action-button chrome (headerActionButton).
-BoxDecoration headerActionButtonDecoration({bool active = false}) {
+BoxDecoration headerActionButtonDecoration({
+  bool active = false,
+  Color? color,
+}) {
   return BoxDecoration(
-    color: active ? MacOSColors.infoBackground : MacOSColors.backgroundHover,
+    color: active ? NightColor.accentSoft : (color ?? NightColor.buttonSurface),
     borderRadius: BorderRadius.circular(8),
     border: Border.all(
-      color: active
-          ? MacOSColors.info.hexAlpha(0x40)
-          : MacOSColors.borderDefault,
+      color: active ? NightColor.accentBorderStrong : NightColor.border,
     ),
   );
 }
 
 /// A 32×32 icon action button (search / filter / power / trash).
+///
+/// Every RN tool styles this one the same way, from the NIGHT tokens:
+/// `night.color.buttonSurface` (a near-black `rgba(8,10,14,0.85)`) with a
+/// `night.color.border` hairline, going to `accentSoft` / `accentBorderStrong`
+/// when active. This used to read the macOS palette — `background.hover`
+/// (#1D1D1F) and `border.default` — which is what the `.web.tsx` twin uses for
+/// the DESKTOP dashboard, not what the device renders; the buttons came out
+/// visibly grey against RN's near-black. Three tools (routes, redux,
+/// perf-monitor) fill with `night.color.surfaceElevated` instead; they pass
+/// `color:`.
 class HeaderActionButton extends StatelessWidget {
   const HeaderActionButton({
     super.key,

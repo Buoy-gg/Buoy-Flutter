@@ -78,7 +78,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                       style: TextStyle(
                           fontSize: 11,
                           color: MacOSColors.textMuted,
-                          fontFamily: 'monospace')),
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                 )
               else
                 ConstrainedBox(
@@ -129,7 +129,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                       fontSize: 11,
                       color: BuoyColors.textSecondary,
                       height: 16 / 11,
-                      fontFamily: 'monospace'),
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
                 ),
               ),
               Container(
@@ -148,7 +148,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: BuoyColors.textMuted,
-                              fontFamily: 'monospace',
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                               letterSpacing: 0.5)),
                     ),
                     _Example('• count -> hides countProvider from both tabs'),
@@ -220,7 +220,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           decoration: filtered
                               ? TextDecoration.lineThrough
                               : null,
@@ -231,7 +231,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color:
                             filtered ? MacOSColors.textDisabled : color)),
               ],
@@ -273,7 +273,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 12,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: color ?? BuoyColors.text)),
               ),
               BuoyGlyph(BuoyIcons.x,
@@ -292,7 +292,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
       autocorrect: false,
       onSubmitted: (_) => _submit(),
       style: const TextStyle(
-          fontSize: 12, color: BuoyColors.text, fontFamily: 'monospace'),
+          fontSize: 12, color: BuoyColors.text, fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
       cursorColor: BuoyColors.primary,
       decoration: InputDecoration(
         isDense: true,
@@ -300,7 +300,7 @@ class _ProviderFilterViewState extends State<ProviderFilterView> {
         hintStyle: const TextStyle(
             fontSize: 12,
             color: MacOSColors.textMuted,
-            fontFamily: 'monospace'),
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
         filled: true,
         fillColor: BuoyColors.input,
         contentPadding:
@@ -329,6 +329,6 @@ class _Example extends StatelessWidget {
       style: const TextStyle(
           fontSize: 10,
           color: BuoyColors.textMuted,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           height: 16 / 10));
 }

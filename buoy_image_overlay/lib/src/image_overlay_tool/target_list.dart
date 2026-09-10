@@ -45,7 +45,7 @@ class TargetList extends StatelessWidget {
                 color: BuoyColors.textMuted,
                 fontSize: 12,
                 height: 18 / 12,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ],
@@ -146,7 +146,7 @@ class _TargetRow extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 11,
                             color: BuoyColors.text,
-                            fontFamily: 'monospace',
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           ),
                         ),
                       ),
@@ -162,7 +162,7 @@ class _TargetRow extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xFFA855F7),
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                     ),

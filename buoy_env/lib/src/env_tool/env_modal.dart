@@ -267,7 +267,7 @@ class _EnvVarsModalState extends State<EnvVarsModal> {
                     fontWeight: FontWeight.w700,
                     color: BuoyColors.textMuted,
                     letterSpacing: 1.2,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
                 Container(
@@ -284,7 +284,7 @@ class _EnvVarsModalState extends State<EnvVarsModal> {
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                       color: BuoyColors.primary,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
                 ),

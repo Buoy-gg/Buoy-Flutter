@@ -118,7 +118,7 @@ class UserCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 11,
                           color: BuoyColors.textMuted,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                     ],

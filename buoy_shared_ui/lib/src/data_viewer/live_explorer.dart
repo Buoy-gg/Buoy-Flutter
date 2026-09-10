@@ -347,7 +347,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
                             style: TextStyle(
                               fontSize: main ? 11 : 10,
                               fontWeight: main ? FontWeight.w700 : FontWeight.w600,
-                              fontFamily: 'monospace',
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                               letterSpacing: main ? 0.6 : 0.4,
                               color: _isRowFocused
                                   ? NightColor.accent
@@ -363,7 +363,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
                           // RN textGray500: 10 / w400 / mono / opacity 0.7.
                           style: TextStyle(
                             fontSize: 10,
-                            fontFamily: 'monospace',
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                             color: NightColor.textTertiary.withValues(alpha: 0.7),
                           ),
                         ),
@@ -445,7 +445,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
                   '[${index * _chunkSize}...${index * _chunkSize + _chunkSize - 1}]',
                   style: const TextStyle(
                     fontSize: 10,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     color: NightColor.textTertiary,
                   ),
                 ),
@@ -523,7 +523,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
                       // RN input: padH 10 / padV 6 / mono 12 / text.
                       style: TextStyle(
                         fontSize: 12,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         fontWeight: isNumber ? FontWeight.w600 : FontWeight.w400,
                         color: NightColor.text,
                       ),
@@ -589,7 +589,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
                   fontSize: 9,
                   fontWeight: on ? FontWeight.w600 : FontWeight.w500,
                   letterSpacing: 0.8,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: on ? NightColor.accent : NightColor.textSecondary,
                 ),
               ),
@@ -620,7 +620,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               letterSpacing: 0.4,
               color: NightColor.textSecondary.withValues(alpha: 0.8),
             ),
@@ -637,7 +637,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
               ),
               child: Text(
                 _display(widget.value),
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: NightColor.text),
+                style: const TextStyle(fontSize: 12, fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback, color: NightColor.text),
               ),
             ),
           ),
@@ -664,7 +664,7 @@ class _LiveExplorerState extends State<LiveExplorer> {
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             letterSpacing: 0.5,
             color: _isRowFocused ? NightColor.accent : NightColor.textTertiary,
           ),
@@ -790,7 +790,7 @@ class _TextAction extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: focused ? color : color.withAlphaByte(0xCC),
             ),
           ),

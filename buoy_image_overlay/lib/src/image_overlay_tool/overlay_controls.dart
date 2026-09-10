@@ -66,7 +66,7 @@ class _SliderStepper extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: MacOSColors.textPrimary,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
               ),

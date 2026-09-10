@@ -157,7 +157,7 @@ class RouteEventRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: color,
               ),
             ),
@@ -177,7 +177,7 @@ class RouteEventRow extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFFFFFFFF),
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ),

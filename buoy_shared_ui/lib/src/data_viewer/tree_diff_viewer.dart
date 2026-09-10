@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../game_ui_colors.dart';
 import 'line_diff.dart' show isAbsent;
 
+import 'package:buoy_core/buoy_core.dart';
 enum _DiffType { added, removed, changed, unchanged }
 
 class _DiffNode {
@@ -394,7 +395,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
                           Text('≡',
                               style: TextStyle(
                                   fontSize: 48,
-                                  fontFamily: 'monospace',
+                                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                   color: GameUIDiffColors.unchangedText
                                       .withValues(alpha: 0.2))),
                           const Padding(
@@ -402,14 +403,14 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
                             child: Text('No changes detected',
                                 style: TextStyle(
                                     fontSize: 14,
-                                    fontFamily: 'monospace',
+                                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                     fontWeight: FontWeight.w600,
                                     color: GameUIDiffColors.unchangedText)),
                           ),
                           Text('The data is identical',
                               style: TextStyle(
                                   fontSize: 12,
-                                  fontFamily: 'monospace',
+                                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                   color: GameUIDiffColors.lineNumberText)),
                         ],
                       ),
@@ -437,20 +438,20 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: color)),
           const SizedBox(width: 4),
           Text('$count',
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: color)),
           const SizedBox(width: 4),
           Text(label,
               style: TextStyle(
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: color.withValues(alpha: 0.9))),
         ],
       ),
@@ -527,7 +528,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
               child: Text('$currentLine'.padLeft(2, ' '),
                   style: const TextStyle(
                       fontSize: 11,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       color: GameUIDiffColors.lineNumberText)),
             ),
             Container(
@@ -537,7 +538,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
               child: Text(marker(),
                   style: TextStyle(
                       fontSize: 12,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       fontWeight: FontWeight.w600,
                       color: ms.color)),
             ),
@@ -561,21 +562,21 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
                         child: Text(isExpanded ? '−' : '+',
                             style: const TextStyle(
                                 fontSize: 11,
-                                fontFamily: 'monospace',
+                                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                 fontWeight: FontWeight.w600,
                                 color: GameUIDiffColors.lineNumberText)),
                       ),
                     Text(node.key,
                         style: TextStyle(
                             fontSize: 11,
-                            fontFamily: 'monospace',
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                             fontWeight: FontWeight.w500,
                             color: GameUIDiffColors.modifiedText
                                 .withValues(alpha: 0.9))),
                     const Text(' : ',
                         style: TextStyle(
                             fontSize: 12,
-                            fontFamily: 'monospace',
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                             color: GameUIDiffColors.lineNumberText)),
                     ..._valueSpans(node, hasChildren, isExpanded),
                   ],
@@ -623,7 +624,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
             child: Text(' => ',
                 style: TextStyle(
                     fontSize: 12,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     fontWeight: FontWeight.w600,
                     color: GameUIDiffColors.modifiedText)),
           ),
@@ -638,7 +639,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
           Text(_stringifyValue(node.oldValue),
               style: const TextStyle(
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: GameUIDiffColors.unchangedText)),
         ];
     }
@@ -652,7 +653,7 @@ class _TreeDiffViewerState extends State<TreeDiffViewer> {
       child: Text(text,
           style: TextStyle(
             fontSize: 11,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: color,
             decoration: strike ? TextDecoration.lineThrough : null,
             decorationColor: color,

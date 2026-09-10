@@ -12,6 +12,7 @@ import 'diff_summary.dart';
 import 'diff_themes.dart';
 import 'line_diff.dart';
 
+import 'package:buoy_core/buoy_core.dart';
 /// RN `SplitDiffViewerOptions`.
 class SplitDiffViewerOptions {
   const SplitDiffViewerOptions({
@@ -90,7 +91,7 @@ class SplitDiffViewer extends StatelessWidget {
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: theme.accentColor ?? theme.unchangedText,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           letterSpacing: 0.5)),
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
@@ -98,7 +99,7 @@ class SplitDiffViewer extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 10,
                             color: theme.unchangedText.withValues(alpha: 0.8),
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                   ),
                 ],
               ),
@@ -136,7 +137,7 @@ class SplitDiffViewer extends StatelessWidget {
                             fontSize: 11,
                             color: theme.emptyStateText,
                             fontStyle: FontStyle.italic,
-                            fontFamily: 'monospace'),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback),
                       ),
                     ),
                   )
@@ -164,7 +165,7 @@ class SplitDiffViewer extends StatelessWidget {
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: theme.accentColor ?? theme.unchangedText,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             letterSpacing: 0.5,
           ),
         ),
@@ -202,7 +203,7 @@ class SplitDiffViewer extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 8,
                     color: theme.separatorText,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     letterSpacing: 2)),
           ),
         IntrinsicHeight(
@@ -306,7 +307,7 @@ class SplitDiffViewer extends StatelessWidget {
             lineNumber != null ? '$lineNumber' : ' ',
             style: TextStyle(
                 fontSize: 9,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: theme.lineNumberText),
           ),
         ),
@@ -317,7 +318,7 @@ class SplitDiffViewer extends StatelessWidget {
         child: Text(marker,
             style: TextStyle(
                 fontSize: 10,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 fontWeight: FontWeight.w600,
                 color: theme.markerText)),
       ),
@@ -330,7 +331,7 @@ class SplitDiffViewer extends StatelessWidget {
                   TextSpan(children: _wordSpans(content)),
                   style: TextStyle(
                       fontSize: 10,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       height: 16 / 10,
                       color: colors.text),
                 )
@@ -340,7 +341,7 @@ class SplitDiffViewer extends StatelessWidget {
                       : ' ',
                   style: TextStyle(
                       fontSize: 10,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       height: 16 / 10,
                       color: colors.text),
                 ),

@@ -308,7 +308,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
             fontSize: 9,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: color,
           ),
         ),
@@ -329,7 +329,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: MacOSColors.textSecondary,
             ),
           ),
@@ -365,7 +365,7 @@ class _NetworkFilterViewState extends State<NetworkFilterView> {
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.3,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           color: _nextPatternMode == mode
                               ? MacOSColors.info
                               : MacOSColors.textSecondary,

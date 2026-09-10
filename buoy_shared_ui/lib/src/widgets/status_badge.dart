@@ -1,35 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:buoy_core/buoy_core.dart';
-
+import '../generated/badge_styles.g.dart';
 import '../macos_colors.dart';
 
 /// Ports packages/shared/src/ui/components/Badge.tsx — the StatusBadge and
-/// CountBadge variants (the ones the assignment calls for; MethodBadge already
-/// lives in badges.dart, TypeBadge/Badge deferred).
+/// CountBadge variants (MethodBadge / TypeBadge / Badge live in badges.dart).
 ///
 /// getBadgeStyles: bg `color15`, border `color40`, borderWidth 1, radius 4
-/// (count = 12). Sizes — small: padH 6 / padV 2 / font 11; medium: 8 / 3 / 12;
-/// large: 10 / 4 / 14. Colors from buoyColors.
+/// (count = 12). Every number and colour comes from [BadgeStyles], generated
+/// from the RN style table — see CONTRIBUTING.md "Porting a component".
 
 enum BadgeSize { small, medium, large }
 
-({double padH, double padV, double fontSize}) _sizeStyle(BadgeSize size) =>
+/// getBadgeStyles.sizeStyles — shared by every badge variant.
+({double padH, double padV, double fontSize}) badgeSizeStyle(BadgeSize size) =>
     switch (size) {
-      BadgeSize.small => (padH: 6, padV: 2, fontSize: 11),
-      BadgeSize.medium => (padH: 8, padV: 3, fontSize: 12),
-      BadgeSize.large => (padH: 10, padV: 4, fontSize: 14),
+      BadgeSize.small => (
+        padH: BadgeStyles.getBadgeStylesSizeStyles_small_paddingHorizontal,
+        padV: BadgeStyles.getBadgeStylesSizeStyles_small_paddingVertical,
+        fontSize: BadgeStyles.getBadgeStylesSizeStyles_small_fontSize,
+      ),
+      BadgeSize.medium => (
+        padH: BadgeStyles.getBadgeStylesSizeStyles_medium_paddingHorizontal,
+        padV: BadgeStyles.getBadgeStylesSizeStyles_medium_paddingVertical,
+        fontSize: BadgeStyles.getBadgeStylesSizeStyles_medium_fontSize,
+      ),
+      BadgeSize.large => (
+        padH: BadgeStyles.getBadgeStylesSizeStyles_large_paddingHorizontal,
+        padV: BadgeStyles.getBadgeStylesSizeStyles_large_paddingVertical,
+        fontSize: BadgeStyles.getBadgeStylesSizeStyles_large_fontSize,
+      ),
     };
 
 const _statusColors = {
-  'success': BuoyColors.success,
-  'error': BuoyColors.error,
-  'warning': BuoyColors.warning,
-  'info': BuoyColors.primary,
-  'pending': NightColor.textSecondary,
-  'active': BuoyColors.success,
-  'inactive': NightColor.textTertiary,
-  'stale': BuoyColors.warning,
-  'fetching': BuoyColors.primary,
+  'success': BadgeStyles.STATUS_COLORS_success,
+  'error': BadgeStyles.STATUS_COLORS_error,
+  'warning': BadgeStyles.STATUS_COLORS_warning,
+  'info': BadgeStyles.STATUS_COLORS_info,
+  'pending': BadgeStyles.STATUS_COLORS_pending,
+  'active': BadgeStyles.STATUS_COLORS_active,
+  'inactive': BadgeStyles.STATUS_COLORS_inactive,
+  'stale': BadgeStyles.STATUS_COLORS_stale,
+  'fetching': BadgeStyles.STATUS_COLORS_fetching,
 };
 
 /// StatusBadge — dot + capitalized status label, colored by status name.
@@ -42,7 +53,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColors[status.toLowerCase()] ?? const Color(0xFF6B7280);
-    final s = _sizeStyle(size);
+    final s = badgeSizeStyle(size);
     final label = status.isEmpty
         ? status
         : status[0].toUpperCase() + status.substring(1);
@@ -51,15 +62,20 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.hexAlpha(0x15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.hexAlpha(0x40)),
+        border: Border.all(
+          color: color.hexAlpha(0x40),
+          width: BadgeStyles.getBadgeStylesStyles_container_borderWidth,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(right: 4),
+            width: BadgeStyles.styles_statusDot_width,
+            height: BadgeStyles.styles_statusDot_height,
+            margin: const EdgeInsets.only(
+              right: BadgeStyles.styles_statusDot_marginRight,
+            ),
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           Text(
@@ -81,7 +97,7 @@ class CountBadge extends StatelessWidget {
   const CountBadge({
     super.key,
     required this.count,
-    this.color = BuoyColors.primary,
+    this.color = BadgeStyles.STATUS_COLORS_info,
     this.size = BadgeSize.small,
     this.maxCount = 99,
   });
@@ -94,21 +110,28 @@ class CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = _sizeStyle(size);
+    final s = badgeSizeStyle(size);
     final display = count is int && (count as int) > maxCount
         ? '$maxCount+'
         : '$count';
     return Container(
-      constraints: const BoxConstraints(minWidth: 20),
-      alignment: Alignment.center,
+      // No `alignment:` — see the note on MethodBadge: it would expand the
+      // badge to the full available width instead of hugging its number.
+      constraints: const BoxConstraints(
+        minWidth: BadgeStyles.styles_countBadge_minWidth,
+      ),
       padding: EdgeInsets.symmetric(horizontal: s.padH, vertical: s.padV),
       decoration: BoxDecoration(
         color: color.hexAlpha(0x15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.hexAlpha(0x40)),
+        border: Border.all(
+          color: color.hexAlpha(0x40),
+          width: BadgeStyles.getBadgeStylesStyles_container_borderWidth,
+        ),
       ),
       child: Text(
         display,
+        textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: s.fontSize,
           fontWeight: FontWeight.w600,

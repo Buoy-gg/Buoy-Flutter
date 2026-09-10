@@ -211,8 +211,12 @@ class NightSwitch extends StatelessWidget {
       child: TouchableOpacity(
         activeOpacity: 0.8,
         onTap: disabled ? null : () => onChanged(!value),
-        // RN hitSlop 8 on every side.
-        child: Padding(padding: const EdgeInsets.all(8), child: body),
+        // RN's `hitSlop` grows the TOUCH area without touching the layout box;
+        // padding here grew the box instead (56x32 became 72x48 on the parity
+        // sheet), so the switch no longer lined up with its RN twin. Flutter
+        // has no layout-free hit-slop, and the box is the thing that has to
+        // match — the extra 8 pt of touch target is the deliberate loss.
+        child: body,
       ),
     );
   }

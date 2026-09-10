@@ -122,7 +122,7 @@ class DataTreeActionDock extends StatelessWidget {
                       fontWeight: current != null
                           ? FontWeight.w600
                           : FontWeight.w400,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
                 ),

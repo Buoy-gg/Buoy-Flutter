@@ -128,7 +128,7 @@ class CompareBar extends StatelessWidget {
               Text(label,
                   style: TextStyle(
                       fontSize: 10,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                       color: labelColor)),
@@ -156,21 +156,21 @@ class CompareBar extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 10,
                             color: MacOSColors.textSecondary,
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                     Text(event.timestamp,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 11,
                             color: MacOSColors.textPrimary,
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                     Text('(${event.relativeTime})',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 10,
                             color: MacOSColors.textSecondary,
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                   ],
                 ),
               ),

@@ -9,6 +9,7 @@ import '../tool.dart';
 import 'buoy_theme.dart';
 import 'minimized_tools_stack.dart';
 
+import 'buoy_fonts.dart';
 /// The draggable floating bubble — Flutter port of the RN package's
 /// `FloatingTools` + `DraggableHeader`.
 ///
@@ -389,7 +390,7 @@ class _BubbleBody extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.3,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: BuoyTheme.secondary,
                       ),
                     ),

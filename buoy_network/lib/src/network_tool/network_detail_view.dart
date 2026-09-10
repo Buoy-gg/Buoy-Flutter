@@ -401,7 +401,7 @@ ${pretty(event.responseData)}
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: MacOSColors.info,
           ),
         ),
@@ -511,7 +511,7 @@ class _UrlBreakdownState extends State<_UrlBreakdown> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 11,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: MacOSColors.textSecondary,
               ),
             ),
@@ -676,7 +676,7 @@ class _TimingPhases extends StatelessWidget {
             textAlign: TextAlign.right,
             style: const TextStyle(
               fontSize: 12,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               color: MacOSColors.textPrimary,
             ),
           ),
@@ -877,7 +877,7 @@ class _FilterOptions extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       color: MacOSColors.textPrimary,
                     ),
                   ),

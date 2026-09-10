@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:buoy_core/buoy_core.dart';
 
 import '../game_ui_colors.dart';
+import '../generated/search_bar_styles.g.dart';
 
 /// Ports packages/shared/src/ui/components/SearchBar.tsx — the search field with
 /// clear button and optional filter button. gameUI-themed (resolves to the
@@ -99,14 +100,19 @@ class _BuoySearchBarState extends State<BuoySearchBar> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
+                  // RN's input has no line-height multiplier; Material's
+                  // bodyLarge does. See [buoyStrut].
                   autofocus: widget.autoFocus,
                   autocorrect: false,
                   enableSuggestions: false,
                   onChanged: widget.onChange,
                   onSubmitted: (_) => widget.onSubmit?.call(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: GameUIColors.text,
+                  // RN's input has no line-height multiplier; Material's
+                  // bodyLarge does, and only an explicit height beats it.
+                  style: TextStyle(
+                    fontSize: SearchBarStyles.styles_input_fontSize,
+                    height: buoyInputLineHeight,
+                    color: SearchBarStyles.styles_input_color,
                   ),
                   cursorColor: GameUIColors.primary,
                   decoration: InputDecoration(
@@ -114,8 +120,9 @@ class _BuoySearchBarState extends State<BuoySearchBar> {
                     isCollapsed: true,
                     border: InputBorder.none,
                     hintText: widget.placeholder,
-                    hintStyle: const TextStyle(
-                      fontSize: 14,
+                    hintStyle: TextStyle(
+                      fontSize: SearchBarStyles.styles_input_fontSize,
+                      height: buoyInputLineHeight,
                       color: GameUIColors.tertiary,
                     ),
                   ),

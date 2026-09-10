@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../macos_colors.dart';
 
+import 'package:buoy_core/buoy_core.dart';
 /// Ports packages/shared/src/ui/components/ExpandedInfoRow.tsx — the
 /// `label: [badge]` rows inside expanded DevTools cards (used by storage/
 /// zustand), plus the [PillBadge] pill they render.
@@ -26,7 +27,7 @@ class ExpandedInfoRow extends StatelessWidget {
               fontSize: 10,
               color: MacOSColors.textMuted,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
           ),
         ),
@@ -78,7 +79,7 @@ class PillBadge extends StatelessWidget {
             style: TextStyle(
               fontSize: isSm ? 9 : 10,
               fontWeight: FontWeight.w700,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               letterSpacing: isSm ? 0.3 : 0.5,
               color: color,
             ),

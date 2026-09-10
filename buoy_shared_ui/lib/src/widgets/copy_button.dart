@@ -101,7 +101,12 @@ class _CopyButtonState extends State<CopyButton> {
       height: widget.height,
       padding: widget.decoration == null ? const EdgeInsets.all(4) : null,
       decoration: widget.decoration,
-      alignment: Alignment.center,
+      // Only centre when the box has a size of its own: a Container with an
+      // `alignment` and no width EXPANDS to its constraints, and RN's
+      // `alignItems/justifyContent: center` on a hug box centres nothing.
+      alignment: widget.width != null || widget.height != null
+          ? Alignment.center
+          : null,
       child: BuoyGlyph(icon, size: widget.size, color: color),
     );
     if (!widget.enabled) return Opacity(opacity: 0.55, child: child);

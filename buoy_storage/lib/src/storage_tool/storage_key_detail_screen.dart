@@ -157,7 +157,7 @@ class _StorageKeyDetailScreenState extends State<StorageKeyDetailScreen> {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: NightColor.accent,
-                                fontFamily: 'monospace',
+                                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                               ),
                             ),
                           ],
@@ -252,7 +252,7 @@ class _StorageKeyDetailScreenState extends State<StorageKeyDetailScreen> {
                 _propRaw,
                 style: const TextStyle(
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   color: NightColor.textSecondary,
                   height: 1.4,
                 ),
@@ -318,7 +318,7 @@ class _StorageKeyDetailScreenState extends State<StorageKeyDetailScreen> {
     fontSize: 12,
     color: NightColor.accent,
     letterSpacing: 0.5,
-    fontFamily: 'monospace',
+    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
   );
 
   Widget _infoRow(String label, List<Widget> children) => Row(
@@ -332,7 +332,7 @@ class _StorageKeyDetailScreenState extends State<StorageKeyDetailScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: NightColor.textSecondary,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ),
@@ -438,7 +438,7 @@ class _PlainCard extends StatelessWidget {
                 fontSize: 12,
                 color: NightColor.textSecondary,
                 letterSpacing: 0.5,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ),

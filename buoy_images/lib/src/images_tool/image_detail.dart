@@ -215,7 +215,7 @@ class _ImageDetailState extends State<ImageDetail> {
           style: const TextStyle(
             color: MacOSColors.textPrimary,
             fontSize: 11,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
           cursorColor: MacOSColors.info,
           decoration: InputDecoration(

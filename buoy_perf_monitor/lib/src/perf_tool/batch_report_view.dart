@@ -226,7 +226,7 @@ class _BatchReportViewState extends State<BatchReportView> {
                 style: const TextStyle(
                   color: MacOSColors.textMuted,
                   fontSize: 12,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 ),
               ),
               const SizedBox(height: 10),
@@ -332,7 +332,7 @@ class _FailureSummary extends StatelessWidget {
                 style: const TextStyle(
                   color: MacOSColors.textSecondary,
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 ),
               ),
             ),

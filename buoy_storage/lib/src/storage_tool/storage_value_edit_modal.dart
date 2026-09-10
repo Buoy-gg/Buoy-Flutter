@@ -167,7 +167,7 @@ class _StorageValueEditModalState extends State<StorageValueEditModal> {
                         style: const TextStyle(
                           color: MacOSColors.textMuted,
                           fontSize: 11,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -228,7 +228,7 @@ class _StorageValueEditModalState extends State<StorageValueEditModal> {
             color: MacOSColors.warning,
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
       ),
@@ -259,7 +259,7 @@ class _StorageValueEditModalState extends State<StorageValueEditModal> {
             color: MacOSColors.textPrimary,
             fontSize: _mode == _EditorMode.raw ? 12 : 14,
             height: _mode == _EditorMode.raw ? 1.5 : 1.4,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
           decoration: InputDecoration(
             isDense: true,
@@ -269,7 +269,7 @@ class _StorageValueEditModalState extends State<StorageValueEditModal> {
             hintStyle: const TextStyle(
               color: MacOSColors.textMuted,
               fontSize: 14,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -357,7 +357,7 @@ class _BooleanChoice extends StatelessWidget {
                         : MacOSColors.textMuted,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
               ),

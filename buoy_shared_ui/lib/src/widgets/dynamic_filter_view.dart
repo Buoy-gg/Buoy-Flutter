@@ -212,7 +212,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     color: option.color,
                   ),
                 ),
@@ -226,13 +226,13 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                       ? const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           color: NightColor.textTertiary,
                         )
                       : const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                           color: NightColor.text,
                         ),
                 ),
@@ -405,7 +405,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           fontSize: 11,
-                                          fontFamily: 'monospace',
+                                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                                           color: NightColor.text,
                                         ),
                                       ),
@@ -451,7 +451,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
               style: const TextStyle(
                 fontSize: 11,
                 height: 16 / 11,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: NightColor.textSecondary,
               ),
             ),
@@ -474,7 +474,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: NightColor.textTertiary,
                       ),
                     ),
@@ -485,7 +485,7 @@ class _DynamicFilterViewState extends State<DynamicFilterView> {
                       style: const TextStyle(
                         fontSize: 10,
                         height: 1.6,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: NightColor.textTertiary,
                       ),
                     ),

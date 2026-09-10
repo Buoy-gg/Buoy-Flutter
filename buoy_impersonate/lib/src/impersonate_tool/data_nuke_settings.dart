@@ -399,7 +399,7 @@ class _DataNukeSettingsViewState extends State<DataNukeSettingsView> {
         style: const TextStyle(
           fontSize: 14,
           color: BuoyColors.text,
-          fontFamily: 'monospace',
+          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
         ),
         cursorColor: BuoyColors.primary,
         decoration: const InputDecoration(
@@ -409,7 +409,7 @@ class _DataNukeSettingsViewState extends State<DataNukeSettingsView> {
           hintStyle: TextStyle(
             fontSize: 14,
             color: BuoyColors.textMuted,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
       ),
@@ -602,7 +602,7 @@ class _DataNukeSettingsViewState extends State<DataNukeSettingsView> {
             style: TextStyle(
               fontSize: 12,
               color: BuoyColors.textMuted,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
           ),
           const SizedBox(height: 6),
@@ -611,7 +611,7 @@ class _DataNukeSettingsViewState extends State<DataNukeSettingsView> {
               style: const TextStyle(
                 fontSize: 13,
                 color: BuoyColors.text,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
               children: [
                 TextSpan(text: '$key: '),

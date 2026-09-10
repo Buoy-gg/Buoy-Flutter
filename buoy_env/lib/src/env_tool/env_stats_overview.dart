@@ -56,7 +56,7 @@ class EnvStatsOverview extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 color: healthColor,
               ),
             ),
@@ -121,7 +121,7 @@ class EnvStatsOverview extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   height: 26 / 22,
                   color: active ? BuoyColors.primary : BuoyColors.text,
                 ),

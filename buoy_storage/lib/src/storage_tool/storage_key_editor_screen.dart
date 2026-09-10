@@ -215,7 +215,7 @@ class _StorageTreeEditorState extends State<_StorageTreeEditor> {
                         style: const TextStyle(
                           color: MacOSColors.error,
                           fontSize: 11,
-                          fontFamily: 'monospace',
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         ),
                       ),
                     ),
@@ -311,7 +311,7 @@ class _StorageTreeEditorState extends State<_StorageTreeEditor> {
             style: const TextStyle(
               color: MacOSColors.textMuted,
               fontSize: 11,
-              fontFamily: 'monospace',
+              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             ),
           ),
         ),
@@ -470,7 +470,7 @@ class _EditorHeader extends StatelessWidget {
                     color: MacOSColors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
                 const SizedBox(height: 2),

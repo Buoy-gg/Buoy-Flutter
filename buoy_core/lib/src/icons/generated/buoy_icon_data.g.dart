@@ -61,7 +61,7 @@ const BuoyIconData benchmarkIconData = BuoyIconData(
     BifCircle(cx: 0.0, cy: 1.0, r: 5.0, fill: BifPaint.theme, opacity: 0.15),
     BifRect(x: -2.0, y: -10.0, width: 4.0, height: 3.0, fill: BifPaint.theme, borderRadius: 1.0, opacity: 0.9),
     BifRect(x: -1.0, y: -7.5, width: 2.0, height: 2.0, fill: BifPaint.theme, opacity: 0.9),
-    BifRect(x: -0.75, y: -4.0, width: 1.5, height: 5.0, fill: BifPaint.theme, borderRadius: 1.0, opacity: 0.9, rotation: -45.0, rotateFromCenter: true),
+    BifRect(x: 0.0, y: 0.25, width: 5.0, height: 1.5, fill: BifPaint.theme, borderRadius: 1.0, opacity: 0.9, rotation: -135.0, rotateFromCenter: false),
     BifCircle(cx: 0.0, cy: 1.0, r: 1.0, fill: BifPaint.theme, opacity: 0.9),
     BifRect(x: -0.5, y: -5.0, width: 1.0, height: 2.0, fill: BifPaint.theme, opacity: 0.5),
     BifRect(x: 4.0, y: 0.5, width: 2.0, height: 1.0, fill: BifPaint.theme, opacity: 0.5),
@@ -594,20 +594,39 @@ const BuoyIconData sentryIconData = BuoyIconData(
   color: kSentryIconColor,
   bgColor: Color(0xFF000000),
   elements: <BifElement>[
-    BifCircle(cx: 0.0, cy: 1.0, r: 8.0, fill: BifPaint.theme, opacity: 0.15),
-    BifRect(x: -6.0, y: -4.0, width: 12.0, height: 14.0, fill: BifPaint.theme, borderRadius: 6.0, opacity: 0.9),
-    BifRect(x: -4.0, y: -9.0, width: 8.0, height: 6.0, fill: BifPaint.theme, borderRadius: 4.0, opacity: 0.95),
-    BifRect(x: -3.0, y: -12.0, width: 0.8, height: 4.0, fill: BifPaint.theme, opacity: 0.7, rotation: -15.0),
-    BifCircle(cx: -4.0, cy: -12.0, r: 1.2, fill: BifPaint.theme, opacity: 0.6),
-    BifRect(x: 2.2, y: -12.0, width: 0.8, height: 4.0, fill: BifPaint.theme, opacity: 0.7, rotation: 15.0),
-    BifCircle(cx: 4.0, cy: -12.0, r: 1.2, fill: BifPaint.theme, opacity: 0.6),
-    BifRect(x: -10.0, y: -2.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: -20.0),
-    BifRect(x: -10.0, y: 1.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: -10.0),
-    BifRect(x: -10.0, y: 4.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: 10.0),
-    BifRect(x: 6.0, y: -2.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: 20.0),
-    BifRect(x: 6.0, y: 1.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: 10.0),
-    BifRect(x: 6.0, y: 4.0, width: 4.0, height: 1.0, fill: BifPaint.theme, opacity: 0.8, rotation: -10.0),
-    BifCircle(cx: 0.0, cy: 1.0, r: 1.0, fill: BifPaint(BifPaintSource.literal, literal: Color(0xFFFFFFFF)), opacity: 0.3),
+    BifArc(cx: -10.5, cy: 8.55, r: 14.3, startAngle: -60.0, endAngle: -0.4, strokeWidth: 1.54),
+    BifLine(x1: -3.343, y1: -3.835, x2: -0.98, y2: -7.883, strokeWidth: 1.62),
+    BifSemicircle(cx: 0.0, cy: -7.3, r: 1.96, half: BifHalf.top, fill: BifPaint.theme),
+    BifLine(x1: 0.96, y1: -7.868, x2: 9.551, y2: 6.754, strokeWidth: 1.67),
+    BifSemicircle(cx: 8.568, cy: 7.333, r: 1.977, half: BifHalf.right, fill: BifPaint.theme),
+    BifRect(x: 6.552, y: 7.657, width: 2.008, height: 1.6, fill: BifPaint.theme),
+    BifArc(cx: -10.5, cy: 8.55, r: 10.83, startAngle: -60.0, endAngle: -0.53, strokeWidth: 1.6),
+    BifRect(x: -0.521, y: 7.64, width: 5.17, height: 1.6, fill: BifPaint.theme),
+    BifLine(x1: -5.086, y1: -0.823, x2: -6.791, y2: 2.125, strokeWidth: 1.62),
+    BifArc(cx: -10.5, cy: 8.55, r: 7.42, startAngle: -60.0, endAngle: -0.83, strokeWidth: 1.46),
+    BifRect(x: -8.547, y: 7.631, width: 6.09, height: 1.609, fill: BifPaint.theme),
+    BifSemicircle(cx: -8.547, cy: 7.308, r: 1.931, half: BifHalf.left, fill: BifPaint.theme),
+    BifLine(x1: -9.517, y1: 6.737, x2: -8.639, y2: 5.33, strokeWidth: 1.61),
+  ],
+);
+
+// ----------------------------------------------------------------------
+// settings
+// ----------------------------------------------------------------------
+
+const BuoyIconData settingsIconData = BuoyIconData(
+  color: Color(0xFFE0E0E0),
+  bgColor: Color(0xFF0A0A0F),
+  elements: <BifElement>[
+    BifCircle(cx: 0.0, cy: 0.0, r: 7.09, border: true, borderWidth: 3.6),
+    BifRect(x: 6.0, y: -1.785, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 0.0, rotateFromCenter: true),
+    BifRect(x: 3.657, y: 3.872, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 45.0, rotateFromCenter: true),
+    BifRect(x: -2.0, y: 6.215, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 90.0, rotateFromCenter: true),
+    BifRect(x: -7.657, y: 3.872, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 135.0, rotateFromCenter: true),
+    BifRect(x: -10.0, y: -1.785, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 180.0, rotateFromCenter: true),
+    BifRect(x: -7.657, y: -7.442, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 225.0, rotateFromCenter: true),
+    BifRect(x: -2.0, y: -9.785, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 270.0, rotateFromCenter: true),
+    BifRect(x: 3.657, y: -7.442, width: 4.0, height: 3.57, fill: BifPaint.theme, borderRadius: 0.45, rotation: 315.0, rotateFromCenter: true),
   ],
 );
 
@@ -1779,6 +1798,7 @@ const Map<String, BuoyIconData> buoyIconsByName = <String, BuoyIconData>{
   'routes': routesIconData,
   'scenarios': scenariosIconData,
   'sentry': sentryIconData,
+  'settings': settingsIconData,
   'storage': storageIconData,
   'time-machine': timeMachineIconData,
   'wifi': wifiIconData,

@@ -138,7 +138,7 @@ class StorageFilterCards extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   height: 20 / 18,
                   color: valueColor,
                 ),
@@ -199,7 +199,7 @@ class StorageFilterCards extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   height: 14 / 12,
                   color: color,
                 ),

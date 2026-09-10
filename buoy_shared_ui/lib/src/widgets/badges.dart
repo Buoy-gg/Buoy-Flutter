@@ -1,47 +1,96 @@
 import 'package:flutter/material.dart';
 import 'package:buoy_core/buoy_core.dart';
 
+import '../generated/badge_styles.g.dart';
 import '../macos_colors.dart';
+import 'status_badge.dart' show BadgeSize, badgeSizeStyle;
 
-/// Ports of shared-ui's Badge.tsx MethodBadge/TypeBadge (the variants the
-/// network row uses, `size="small"`) plus the row's status/pending/error and
-/// request-client badges.
+/// Ports of shared-ui's Badge.tsx MethodBadge/TypeBadge plus the network row's
+/// status/pending/error and request-client badges. Every number comes from
+/// [BadgeStyles], generated from the RN style table.
 
-/// Badge.tsx METHOD_COLORS (buoyColors-based).
+/// Badge.tsx METHOD_COLORS.
 Color methodBadgeColor(String method) => switch (method.toUpperCase()) {
-  'GET' => BuoyColors.success,
-  'POST' => BuoyColors.primary,
-  'PUT' => BuoyColors.warning,
-  'PATCH' => NightColor.textSecondary,
-  'DELETE' => BuoyColors.error,
-  'HEAD' => NightColor.textTertiary,
-  'OPTIONS' => BuoyColors.primary,
+  'GET' => BadgeStyles.METHOD_COLORS_GET,
+  'POST' => BadgeStyles.METHOD_COLORS_POST,
+  'PUT' => BadgeStyles.METHOD_COLORS_PUT,
+  'PATCH' => BadgeStyles.METHOD_COLORS_PATCH,
+  'DELETE' => BadgeStyles.METHOD_COLORS_DELETE,
+  'HEAD' => BadgeStyles.METHOD_COLORS_HEAD,
+  'OPTIONS' => BadgeStyles.METHOD_COLORS_OPTIONS,
   _ => const Color(0xFF6B7280),
 };
 
-/// MethodBadge size="small": padH 6 / padV 2 / fontSize 11 / w700, minWidth
-/// 45, radius 4, bg color15, border color40.
+/// Badge.tsx `Badge` — the plain chip: children inside the shared container,
+/// no text of its own. RN default colour `#E5E7EB`, default size medium.
+class Badge extends StatelessWidget {
+  const Badge({
+    super.key,
+    required this.child,
+    this.color = const Color(0xFFE5E7EB),
+    this.size = BadgeSize.medium,
+  });
+
+  final Widget child;
+  final Color color;
+  final BadgeSize size;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = badgeSizeStyle(size);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: s.padH, vertical: s.padV),
+      decoration: BoxDecoration(
+        color: color.hexAlpha(0x15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: color.hexAlpha(0x40),
+          width: BadgeStyles.getBadgeStylesStyles_container_borderWidth,
+        ),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[child]),
+    );
+  }
+}
+
+/// MethodBadge — `styles.methodBadge` (minWidth 45, centred) + `methodText`
+/// (w700). RN's default size is medium; the network row passes small.
 class MethodBadge extends StatelessWidget {
-  const MethodBadge({super.key, required this.method});
+  const MethodBadge({
+    super.key,
+    required this.method,
+    this.size = BadgeSize.medium,
+  });
 
   final String method;
+  final BadgeSize size;
 
   @override
   Widget build(BuildContext context) {
     final color = methodBadgeColor(method);
+    final s = badgeSizeStyle(size);
+    // No `alignment:` — a Container with one expands to its max constraints,
+    // which would stretch the badge across the whole row. RN's `minWidth: 45`
+    // + `alignItems: center` is a HUG box with a floor, which is what a
+    // constraint plus a centred Text gives.
     return Container(
-      constraints: const BoxConstraints(minWidth: 45),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      constraints: const BoxConstraints(
+        minWidth: BadgeStyles.styles_methodBadge_minWidth,
+      ),
+      padding: EdgeInsets.symmetric(horizontal: s.padH, vertical: s.padV),
       decoration: BoxDecoration(
         color: color.hexAlpha(0x15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.hexAlpha(0x40)),
+        border: Border.all(
+          color: color.hexAlpha(0x40),
+          width: BadgeStyles.getBadgeStylesStyles_container_borderWidth,
+        ),
       ),
       child: Text(
         method.toUpperCase(),
+        textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: s.fontSize,
           fontWeight: FontWeight.w700,
           color: color,
         ),
@@ -96,7 +145,12 @@ Color typeBadgeColor(String type) => switch (type.toLowerCase()) {
 /// border color40, radius 4. Uses [BuoyColors] (env's `buoyColors` theme), not
 /// the macOS palette.
 class TypeBadge extends StatelessWidget {
-  const TypeBadge({super.key, required this.type, this.color});
+  const TypeBadge({
+    super.key,
+    required this.type,
+    this.color,
+    this.size = BadgeSize.small,
+  });
 
   /// The type label (`string`, `url`, `boolean`, …). Rendered verbatim.
   final String type;
@@ -104,20 +158,27 @@ class TypeBadge extends StatelessWidget {
   /// Optional override; defaults to [typeBadgeColor].
   final Color? color;
 
+  /// RN's default for this variant is small.
+  final BadgeSize size;
+
   @override
   Widget build(BuildContext context) {
     final c = color ?? typeBadgeColor(type);
+    final s = badgeSizeStyle(size);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: s.padH, vertical: s.padV),
       decoration: BoxDecoration(
         color: c.hexAlpha(0x15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: c.hexAlpha(0x40)),
+        border: Border.all(
+          color: c.hexAlpha(0x40),
+          width: BadgeStyles.getBadgeStylesStyles_container_borderWidth,
+        ),
       ),
       child: Text(
         type,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: s.fontSize,
           fontWeight: FontWeight.w600,
           color: c,
         ),

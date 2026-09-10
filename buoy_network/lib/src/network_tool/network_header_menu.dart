@@ -60,8 +60,10 @@ class NetworkHeaderMenuButton extends StatelessWidget {
                   // Lit only while the menu is down — the button is the one
                   // thing the backdrop doesn't cover, so it has to look like
                   // the thing that is currently open.
+                  // RN `buttonOpen`: night `surfaceElevated`, not the macOS
+                  // hover grey.
                   color: isOpen
-                      ? MacOSColors.backgroundHover
+                      ? NightColor.surfaceElevated
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -80,8 +82,9 @@ class NetworkHeaderMenuButton extends StatelessWidget {
                   child: Container(
                     width: 6,
                     height: 6,
+                    // RN `indicator`: the night ACCENT, not info-cyan.
                     decoration: const BoxDecoration(
-                      color: MacOSColors.info,
+                      color: NightColor.accent,
                       shape: BoxShape.circle,
                     ),
                   ),

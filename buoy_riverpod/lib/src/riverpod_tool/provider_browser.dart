@@ -111,7 +111,7 @@ class _ProviderBrowserState extends State<ProviderBrowser> {
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: BuoyColors.primary,
-                        fontFamily: 'monospace')),
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
               ),
             ],
           ),
@@ -161,7 +161,7 @@ class _ProviderBrowserState extends State<ProviderBrowser> {
                     style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: color)),
               ),
             ),
@@ -244,7 +244,7 @@ class _ExpandedContent extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
+                              fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                               color: color)),
                     ),
                   ),
@@ -271,7 +271,7 @@ class _ExpandedContent extends StatelessWidget {
                         style: const TextStyle(
                             color: BuoyColors.text,
                             fontSize: 12,
-                            fontFamily: 'monospace')),
+                            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                   ),
           ),
         ),

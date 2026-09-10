@@ -77,7 +77,7 @@ class UnifiedEventDetail extends StatelessWidget {
                       color: config.color,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
                 ],
@@ -89,7 +89,7 @@ class UnifiedEventDetail extends StatelessWidget {
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: BuoyColors.text,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
             const SizedBox(height: 4),
@@ -98,7 +98,7 @@ class UnifiedEventDetail extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 16,
                 color: BuoyColors.textMuted,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
             const SizedBox(height: 16),
@@ -117,14 +117,14 @@ class UnifiedEventDetail extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 14,
                           color: BuoyColors.textMuted,
-                          fontFamily: 'monospace')),
+                          fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback)),
                   Text(
                     '${timestamp.toLocal().toString().split(".").first} '
                     '(${formatRelativeTime(event.timestamp)})',
                     style: const TextStyle(
                       fontSize: 14,
                       color: BuoyColors.text,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
                 ],
@@ -138,7 +138,7 @@ class UnifiedEventDetail extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: BuoyColors.textMuted,
                 letterSpacing: 0.5,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
             const SizedBox(height: 8),

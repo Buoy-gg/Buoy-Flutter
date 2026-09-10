@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
 import '../../storage.dart';
+import '../buoy_text.dart';
 import '../buoy_theme.dart';
 import '../night/night_theme.dart';
 import '../touchable_opacity.dart';
@@ -589,9 +590,14 @@ class _JsModalState extends State<JsModal> with TickerProviderStateMixin {
         maintainState: true,
         child: Material(
           type: MaterialType.transparency,
-          child: _mode == JsModalMode.bottomSheet
-              ? _bottomSheet(screen)
-              : _floating(),
+          // Material installs `textTheme.bodyMedium` (height 1.43) as the
+          // ambient text style; RN has no such leading, so every tool's text
+          // would sit 43 % taller than its RN twin. See [BuoyTextBaseline].
+          child: BuoyTextBaseline(
+            child: _mode == JsModalMode.bottomSheet
+                ? _bottomSheet(screen)
+                : _floating(),
+          ),
         ),
       ),
     );

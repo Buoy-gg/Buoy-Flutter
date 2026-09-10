@@ -3,29 +3,36 @@ import 'package:flutter/material.dart';
 import 'macos_colors.dart';
 
 /// Resolved values of shared-ui's `gameUIColors` (gameUIColors.ts). At runtime
-/// the active theme is `macOSGameUIColors`, so most keys resolve to
-/// [MacOSColors]; a few are overridden by the `gameUIColors` spread after the
-/// theme is applied. Captured here as constants for the components that style
-/// with gameUIColors (SearchBar, CollapsibleSection, StatsCard).
+/// the active theme is `macOSGameUIColors`, and `gameUIColors` is
+/// `{...fallbacks, ...activeTheme}` — **the spread comes LAST on purpose**, so
+/// the macOS theme wins on every key it defines and the dark-navy fallbacks
+/// only apply to `defaultTheme`. Captured here as constants for the components
+/// that style with gameUIColors (SearchBar, CollapsibleSection, StatsCard).
 ///
 /// Provenance / resolution:
-/// - panel      = rgba(16,22,35,0.98) (explicit spread override wins over the
-///   macOS theme's card color — a dark navy, NOT the neutral #1A1A1C card)
-/// - background = rgba(8,12,21,0.98)  (spread override, not the macOS base)
+/// - panel      = background.card            (#1A1A1C)
+/// - background = background.base            (#0A0A0C)
 /// - secondary  = tertiary = text.secondary  (#A1A1A6)
 /// - muted      = text.muted                 (#8E8E93)
 /// - text       = text.primary               (#F5F5F7)
-/// - primary    = #FFFFFF     (explicit spread override wins over text.primary)
+/// - primary    = text.primary               (#F5F5F7)
 /// - border     = border.default             (#2D2D2F)
 /// - success/warning/error = semantic.*
 class GameUIColors {
-  static const panel = Color(0xFA101623); // rgba(16, 22, 35, 0.98)
-  static const background = Color(0xFA080C15); // rgba(8, 12, 21, 0.98)
+  // `gameUIColors` is `{...fallbacks, ...macOSGameUIColors}`, and the macOS
+  // snapshot WINS: `panel` is `macOSColors.background.card` and `background`
+  // is `.base`. The two cyberpunk rgba fallbacks that used to sit here were
+  // the pre-macOS values, and the parity sheet caught them — the search bar
+  // filled #101622 where its RN twin fills #1A1A1C.
+  static const panel = MacOSColors.backgroundCard;
+  static const background = MacOSColors.backgroundBase;
   static const secondary = MacOSColors.textSecondary;
   static const tertiary = MacOSColors.textSecondary;
   static const muted = MacOSColors.textMuted;
   static const text = MacOSColors.textPrimary;
-  static const primary = Color(0xFFFFFFFF);
+  // `macOSGameUIColors` defines `primary: macOSColors.text.primary`, and the
+  // spread wins over the #FFFFFF fallback (see the library note).
+  static const primary = MacOSColors.textPrimary;
   static const border = MacOSColors.borderDefault;
   static const success = MacOSColors.success;
   static const warning = MacOSColors.warning;

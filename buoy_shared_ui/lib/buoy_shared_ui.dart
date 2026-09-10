@@ -16,6 +16,10 @@ export 'src/game_ui_colors.dart';
 export 'package:buoy_core/buoy_core.dart'
     show Night, NightColor, NightRadius, NightFont, NightAlpha;
 
+// The monospace family — never write `fontFamily: 'monospace'` (see the note in
+// buoy_core's buoy_fonts.dart: RN and Flutter resolve that name differently).
+export 'package:buoy_core/buoy_core.dart' show buoyMonoFont, buoyMonoFallback;
+
 // Night primitives live in buoy_core beside the tokens (the dial's settings
 // sheet is built from them); re-exported here for tools.
 export 'package:buoy_core/buoy_core.dart'

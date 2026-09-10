@@ -34,7 +34,9 @@ class AddFilterButton extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
+          // RN's `addButton` has no width: it hugs its label. `max` stretched
+          // it across whatever row it was dropped in.
+          mainAxisSize: MainAxisSize.min,
           children: [
             BuoyGlyph(BuoyIcons.plus, size: 14, color: color),
             const SizedBox(width: 6),
@@ -226,7 +228,7 @@ class FilterList extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: color,
                       ),
                     ),

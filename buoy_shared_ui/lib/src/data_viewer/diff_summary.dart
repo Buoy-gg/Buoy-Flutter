@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import 'diff_themes.dart';
 
+import 'package:buoy_core/buoy_core.dart';
 class DiffSummary extends StatelessWidget {
   const DiffSummary({
     super.key,
@@ -66,19 +67,19 @@ class DiffSummary extends StatelessWidget {
           Text(icon,
               style: TextStyle(
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   fontWeight: FontWeight.w700,
                   color: fg)),
           const SizedBox(width: 3),
           Text('$count',
               style: TextStyle(
                   fontSize: 10,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   fontWeight: FontWeight.w600,
                   color: fg)),
           const SizedBox(width: 3),
           Text(label,
-              style: TextStyle(fontSize: 9, fontFamily: 'monospace', color: fg)),
+              style: TextStyle(fontSize: 9, fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback, color: fg)),
         ],
       ),
     );

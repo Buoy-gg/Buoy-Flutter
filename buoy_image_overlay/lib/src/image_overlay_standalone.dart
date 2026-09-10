@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'image_overlay_controller.dart';
 import 'image_overlay_types.dart';
 
+import 'package:buoy_core/buoy_core.dart';
 // RN highlight/label/handle colors (ImageOverlayStandalone styles).
 const Color _teal = Color(0xFF20C997);
 const Color _tealActive = Color(0xFF10B981);
@@ -129,7 +130,7 @@ class _ImageOverlayStandaloneState extends State<ImageOverlayStandalone> {
                         color: _white,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                       ),
                     ),
                   ),

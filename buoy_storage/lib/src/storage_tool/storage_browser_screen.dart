@@ -421,7 +421,7 @@ class _StorageBrowserScreenState extends State<StorageBrowserScreen> {
           style: TextStyle(
             fontSize: 8,
             color: MacOSColors.textMuted,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             letterSpacing: 1,
           ),
         ),
@@ -501,7 +501,7 @@ class _KeysSection extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: MacOSColors.textPrimary,
-                      fontFamily: 'monospace',
+                      fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                     ),
                   ),
                 ),

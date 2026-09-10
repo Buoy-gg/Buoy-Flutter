@@ -506,7 +506,7 @@ class _EventsModalState extends State<EventsModal> {
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: BuoyColors.text,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
         const SizedBox(width: 8),
@@ -515,7 +515,7 @@ class _EventsModalState extends State<EventsModal> {
           style: const TextStyle(
             fontSize: 12,
             color: BuoyColors.textMuted,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
           ),
         ),
       ],
@@ -548,7 +548,7 @@ class _EventsModalState extends State<EventsModal> {
                 style: const TextStyle(
                   fontSize: 13,
                   color: BuoyColors.text,
-                  fontFamily: 'monospace',
+                  fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                 ),
                 cursorColor: BuoyColors.primary,
                 decoration: const InputDecoration(
@@ -559,7 +559,7 @@ class _EventsModalState extends State<EventsModal> {
                   hintStyle: TextStyle(
                     fontSize: 13,
                     color: BuoyColors.textMuted,
-                    fontFamily: 'monospace',
+                    fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                   ),
                 ),
               ),

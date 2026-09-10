@@ -14,6 +14,7 @@ import 'modal/modal_visibility.dart';
 import 'overlay_host.dart';
 import 'touchable_opacity.dart';
 
+import 'buoy_fonts.dart';
 /// Root of the in-app floating menu — the Flutter analog of the RN package's
 /// `FloatingDevTools`. Mount it once via `MaterialApp.router(builder:)` so it
 /// wraps the Navigator and survives all route changes:
@@ -273,7 +274,16 @@ class _BuoyDevToolsState extends State<BuoyDevTools> {
     // soon as it needs its selection handles / cursor / context menu. Hosting
     // the layers in their own Overlay gives those fields the ancestor they
     // need, without a nested Navigator stealing route/back-button semantics.
-    _buoyEntry ??= OverlayEntry(builder: _buoyLayers);
+    _buoyEntry ??= OverlayEntry(
+      // `Buoy.shellHidden` is the parity stage: the whole shell disappears
+      // (bubble, dial, open tools) while a capture is driven, and comes back
+      // with the open tools still open. RN: `props.hidden ? null : <AppOverlay/>`.
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: Buoy.shellHidden,
+        builder: (context, hidden, _) =>
+            hidden ? const SizedBox.shrink() : _buoyLayers(context),
+      ),
+    );
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -412,7 +422,7 @@ class _ToolHost extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1,
-                        fontFamily: 'monospace',
+                        fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
                         color: BuoyTheme.secondary,
                       ),
                     ),

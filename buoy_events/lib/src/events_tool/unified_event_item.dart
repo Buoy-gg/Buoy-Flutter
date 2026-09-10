@@ -80,7 +80,7 @@ class _SourceBadgeWrapper extends StatelessWidget {
                 fontSize: 8,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
-                fontFamily: 'monospace',
+                fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
               ),
             ),
           ),

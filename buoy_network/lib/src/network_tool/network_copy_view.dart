@@ -402,7 +402,7 @@ class _NetworkCopyViewState extends State<NetworkCopyView> {
           style: const TextStyle(
             fontSize: 11,
             height: 18 / 11,
-            fontFamily: 'monospace',
+            fontFamily: buoyMonoFont, fontFamilyFallback: buoyMonoFallback,
             color: MacOSColors.textPrimary,
           ),
         ),
